@@ -2455,5 +2455,179 @@ if(typeof SB_READY!=='undefined' && SB_READY){
 }
 </script>
 
+<script>
+/* ═══ Звук: твои mp3-файлы, а если их нет — синтезированный запасной вариант ═══ */
+(function(){
+  /* ─── ЧТО МОЖНО ПОЛОЖИТЬ В РЕПОЗИТОРИЙ (всё необязательно) ───
+     music/theme.mp3   — фоновая музыка в меню
+     music/battle.mp3  — музыка во время боя
+     music/pack.mp3    — музыка/джингл при открытии пака
+     sounds/click.mp3  — переключение вкладок и нажатия
+     sounds/win.mp3    — победа в бою
+     sounds/legendary.mp3 — выпала легендарная карта
+     Файла нет — просто играет запасной звук, ошибок не будет.        */
+  const MUSIC = { menu:'music/theme.mp3', battle:'music/battle.mp3', pack:'music/pack.mp3' };
+  const SFX   = { click:'sounds/click.mp3', win:'sounds/win.mp3', legendary:'sounds/legendary.mp3' };
+  const MUSIC_VOL = 0.35, SFX_VOL = 0.6;
+
+  const _sfx = window.sfx;
+  let musicOn=false, started=false, curTrack=null, curAudio=null, fadeTimer=null;
+  const players={}, sfxCache={};
+  try{ musicOn = localStorage.getItem('acade-music') !== 'off'; }catch(e){}
+
+  /* ─── проигрыватели ─── */
+  function makeAudio(src, loop){
+    const a = new Audio(src);
+    a.loop = !!loop; a.preload = 'auto'; a.volume = 0;
+    a.addEventListener('error', ()=>{ a._broken = true; }, { once:true });
+    return a;
+  }
+  function fadeTo(audio, target, ms){
+    if(!audio) return;
+    if(fadeTimer){ clearInterval(fadeTimer); fadeTimer=null; }
+    const step = 40, delta = (target - audio.volume) / Math.max(1, ms/step);
+    fadeTimer = setInterval(()=>{
+      let v = audio.volume + delta;
+      if((delta>0 && v>=target) || (delta<0 && v<=target)){
+        v = target; clearInterval(fadeTimer); fadeTimer=null;
+        if(target===0){ try{ audio.pause(); }catch(e){} }
+      }
+      try{ audio.volume = Math.max(0, Math.min(1, v)); }catch(e){}
+    }, step);
+  }
+  function playTrack(key){
+    if(!musicOn || !started) { curTrack = key; return; }
+    const src = MUSIC[key];
+    if(!src){ return; }
+    if(curTrack === key && curAudio && !curAudio.paused) return;
+    const prev = curAudio;
+    if(!players[key]) players[key] = makeAudio(src, true);
+    const next = players[key];
+    if(next._broken){ synthMusic(true); curTrack = key; return; }
+    curTrack = key; curAudio = next;
+    next.currentTime = 0; next.volume = 0;
+    const p = next.play();
+    if(p && p.catch) p.catch(()=>{ synthMusic(true); });
+    fadeTo(next, MUSIC_VOL, 900);
+    if(prev && prev !== next) fadeTo(prev, 0, 700);
+    synthMusic(false);
+  }
+  function stopAll(){
+    Object.values(players).forEach(a=>{ try{ a.pause(); a.currentTime=0; }catch(e){} });
+    curAudio = null; synthMusic(false);
+  }
+
+  /* ─── запасная музыка синтезом, если файлов нет ─── */
+  let sTimer=null, sBus=null, sStep=0;
+  const PROG=[{b:110.00,n:[220.00,261.63,329.63]},{b:87.31,n:[174.61,261.63,349.23]},
+              {b:130.81,n:[196.00,261.63,329.63]},{b:98.00,n:[196.00,246.94,293.66]}];
+  function ctx(){ return (typeof actx==='function') ? actx() : null; }
+  function synthChord(){
+    const c=ctx(); if(!c||!sBus) return;
+    const t=c.currentTime+0.05, ch=PROG[sStep++ % PROG.length];
+    [[ch.b,0.30]].concat(ch.n.map(f=>[f,0.18])).forEach(([f,v],i)=>{
+      const o=c.createOscillator(), g=c.createGain();
+      o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(sBus);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(v, t+1.3+i*0.12);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+5.2);
+      o.start(t); o.stop(t+5.4);
+    });
+  }
+  function synthMusic(on){
+    const c=ctx(); if(!c) return;
+    if(on){
+      if(!sBus){ sBus=c.createGain(); sBus.gain.value=0; sBus.connect(c.destination); }
+      sBus.gain.cancelScheduledValues(c.currentTime);
+      sBus.gain.setValueAtTime(sBus.gain.value, c.currentTime);
+      sBus.gain.linearRampToValueAtTime(0.14, c.currentTime+2);
+      if(!sTimer){ synthChord(); sTimer=setInterval(synthChord, 5000); }
+    } else {
+      if(sTimer){ clearInterval(sTimer); sTimer=null; }
+      if(sBus){
+        sBus.gain.cancelScheduledValues(c.currentTime);
+        sBus.gain.setValueAtTime(sBus.gain.value, c.currentTime);
+        sBus.gain.linearRampToValueAtTime(0.0001, c.currentTime+1);
+      }
+    }
+  }
+
+  /* ─── звуки: файл, если есть; иначе синтез ─── */
+  function tone(f,t0,dur,vol,type){
+    const c=ctx(); if(!c) return;
+    const o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f,t0);
+    o.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(vol,0.0002), t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0+dur);
+    o.start(t0); o.stop(t0+dur+0.05);
+  }
+  window.sfx = function(name){
+    if(typeof soundOn!=='undefined' && !soundOn) return;
+    const src = SFX[name];
+    if(src){
+      if(!sfxCache[name]) sfxCache[name] = makeAudio(src, false);
+      const base = sfxCache[name];
+      if(!base._broken){
+        try{ const a = base.cloneNode(); a.volume = SFX_VOL; const p = a.play(); if(p&&p.catch) p.catch(()=>{}); return; }
+        catch(e){}
+      }
+    }
+    const c=ctx(); if(!c) return;
+    if(c.state==='suspended') c.resume();
+    if(name==='click'){ const t=c.currentTime; tone(784,t,0.05,0.05,'triangle'); tone(1175,t+0.035,0.07,0.035,'sine'); return; }
+    return _sfx ? _sfx(name) : undefined;
+  };
+
+  /* ─── переключение музыки по экранам ─── */
+  const _showScreen = window.showScreen;
+  window.showScreen = function(name, btn){
+    _showScreen(name, btn);
+    if(musicOn && started) playTrack(name==='battle' ? 'battle' : 'menu');
+  };
+  const _showReveal = window.showReveal;
+  if(_showReveal) window.showReveal = async function(cards){
+    if(musicOn && started && MUSIC.pack) playTrack('pack');
+    const r = await _showReveal(cards);
+    return r;
+  };
+  const _closeReveal = window.closeReveal;
+  if(_closeReveal) window.closeReveal = function(){
+    _closeReveal();
+    if(musicOn && started) playTrack('menu');
+  };
+
+  window.toggleMusic = function(){
+    musicOn = !musicOn;
+    try{ localStorage.setItem('acade-music', musicOn?'on':'off'); }catch(e){}
+    if(musicOn){ started = true; playTrack(curTrack || 'menu'); }
+    else { stopAll(); }
+    const b=document.getElementById('music-toggle-btn');
+    if(b) b.innerHTML=(musicOn?'\u{1F3B6}':'\u{1F507}')+' Музыка: '+(musicOn?'включена':'выключена');
+  };
+
+  function firstGesture(){
+    if(started) return; started = true;
+    if(musicOn) playTrack(curTrack || 'menu');
+    document.removeEventListener('pointerdown', firstGesture);
+    document.removeEventListener('keydown', firstGesture);
+  }
+  document.addEventListener('pointerdown', firstGesture);
+  document.addEventListener('keydown', firstGesture);
+
+  const _renderProfile = window.renderProfile;
+  window.renderProfile = function(){
+    _renderProfile();
+    const sb2=document.getElementById('sound-toggle-btn');
+    if(sb2 && !document.getElementById('music-toggle-btn')){
+      sb2.insertAdjacentHTML('afterend',
+        `<button class="btn btn-ghost" id="music-toggle-btn" style="margin-left:8px" onclick="toggleMusic()">`
+        + (musicOn?'\u{1F3B6}':'\u{1F507}') + ' Музыка: ' + (musicOn?'включена':'выключена') + `</button>`);
+    }
+  };
+})();
+</script>
+
 </body>
 </html>
