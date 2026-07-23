@@ -2219,5 +2219,163 @@ function offlineMode(reason){
 })();
 </script>
 
+<style>
+  .shop-tabs{ display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:14px; }
+  .shop-tab{ font-family:'Nunito'; font-weight:900; font-size:13px; cursor:pointer; padding:11px 6px; border-radius:13px;
+    color:#DDF0CB; background:rgba(255,255,255,.14); border:2.5px solid rgba(5,35,20,.45);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25); transition:all .14s; }
+  .shop-tab:hover:not(.on){ background:rgba(255,255,255,.26); transform:translateY(-1px); }
+  .shop-tab.on{ background:linear-gradient(180deg,var(--c-lime),var(--c-green)); color:var(--c-pine);
+    border-color:var(--c-abyss); box-shadow:0 3px 0 var(--c-abyss), inset 0 1px 0 rgba(255,255,255,.6); }
+  .lot{ position:relative; }
+  .lot .creature-card{ cursor:default; } .lot .creature-card:hover{ transform:none; }
+  .lot-seller{ position:absolute; top:6px; left:6px; z-index:5; font-size:9px; font-weight:900; padding:3px 9px; border-radius:99px;
+    background:rgba(12,58,33,.92); color:#CFE6BE; border:1.5px solid rgba(201,231,162,.45); max-width:88%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lot-row{ display:flex; gap:6px; margin-top:7px; }
+  .lot-price{ flex:1; font-family:'Russo One'; font-size:13px; text-align:center; padding:8px 4px; border-radius:11px;
+    color:#5A3A00; background:linear-gradient(180deg,#FFE9A8,#FFCE4A); border:2px solid var(--c-gold-d); }
+  .price-input{ width:100%; font-family:'Nunito'; font-weight:900; font-size:13px; text-align:center; padding:8px 4px;
+    color:var(--c-ink); background:#FBFEF6; border:2.5px solid rgba(34,110,67,.35); border-radius:11px; margin-top:7px; }
+  .price-input:focus{ outline:none; border-color:var(--c-green); }
+  .log-table{ width:100%; border-collapse:collapse; font-size:12px; font-weight:700; }
+  .log-table th{ text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--c-ink-soft);
+    padding:6px 8px; border-bottom:2px solid rgba(34,110,67,.25); }
+  .log-table td{ padding:7px 8px; border-bottom:1px solid rgba(34,110,67,.14); color:var(--c-ink); }
+  .log-table tr:last-child td{ border-bottom:none; }
+</style>
+<script>
+let shopTab = 'trader', marketLots = [];
+
+function setShopTab(t){ shopTab=t; sfx('click'); renderShop(); if(t==='market') loadMarket(); }
+
+async function refreshCollection(){
+  const { data:{ user } } = await sb.auth.getUser(); if(!user) return;
+  const { data } = await sb.from('collections').select('card_id, qty');
+  const byId={}; state.cardBank.forEach(c=>byId[c.id]=c);
+  state.collection=[]; let u=1;
+  (data||[]).forEach(r=>{ const c=byId[r.card_id]; if(!c) return;
+    for(let i=0;i<r.qty;i++) state.collection.push({ ...c, uid:'m'+(u++) }); });
+}
+async function loadMarket(){
+  const { data, error } = await sb.rpc('market_list');
+  if(error){ showToast(error.message); return; }
+  marketLots = data || [];
+  if(shopTab==='market') renderShop();
+}
+async function listCard(cardId){
+  const inp=document.getElementById('price-'+cardId);
+  const price=parseInt(inp && inp.value, 10);
+  if(!price || price<1 || price>9999){ showToast('Цена от 1 до 9999 монет'); return; }
+  const { error } = await sb.rpc('list_card', { p_card:cardId, p_price:price });
+  if(error){ showToast(error.message); return; }
+  sfx('rare'); showToast('Лот выставлен на рынок! \u{1F4E4}');
+  await refreshCollection(); await loadMarket(); renderShop();
+}
+async function buyLot(id){
+  const { data, error } = await sb.rpc('buy_listing', { p_listing:id });
+  if(error){ showToast(error.message); return; }
+  sfx('epic'); showToast('Куплено за '+data+' \u{1FA99}');
+  await Promise.all([refreshProfile(), refreshCollection(), loadMarket()]);
+  renderShop();
+}
+async function cancelLot(id){
+  const { error } = await sb.rpc('cancel_listing', { p_listing:id });
+  if(error){ showToast(error.message); return; }
+  sfx('click'); showToast('Лот снят, карта вернулась в коллекцию');
+  await Promise.all([refreshCollection(), loadMarket()]);
+  renderShop();
+}
+
+function lotCardHTML(l){
+  return makeCardHTML({ id:l.card_id, name:l.name, type:l.type, rarity:l.rarity,
+                        atk:l.atk, def:l.def, spd:l.spd, emoji:l.emoji, image:l.image_url });
+}
+function marketHTML(){
+  const dups=groupedCollection().filter(g=>g.count>1);
+  const mine=marketLots.filter(l=>l.is_mine);
+  const others=marketLots.filter(l=>!l.is_mine);
+
+  const sellHTML=dups.map(g=>{
+    const hint=(SELL_PRICE[g.card.rarity]||5)*3;
+    return `<div class="sell-item">${makeCardHTML(g.card,{count:g.count})}
+      <input class="price-input" id="price-${g.card.id}" type="number" min="1" max="9999" value="${hint}" placeholder="цена">
+      <button class="sell-btn" onclick="listCard('${g.card.id}')">Выставить \u{1F4E4}</button></div>`;
+  }).join('');
+
+  const othersHTML=others.map(l=>`<div class="lot">
+      <div class="lot-seller">\u{1F464} ${l.seller_login}</div>
+      ${lotCardHTML(l)}
+      <div class="lot-row">
+        <div class="lot-price">\u{1FA99} ${l.price}</div>
+        <button class="offer-buy" style="width:auto;margin-top:0;padding:8px 14px" ${state.coins>=l.price?'':'disabled'} onclick="buyLot('${l.listing_id}')">Купить</button>
+      </div></div>`).join('');
+
+  const mineHTML=mine.map(l=>`<div class="lot">
+      ${lotCardHTML(l)}
+      <div class="lot-row">
+        <div class="lot-price">\u{1FA99} ${l.price}</div>
+        <button class="btn btn-red btn-mini" style="padding:8px 12px" onclick="cancelLot('${l.listing_id}')">Снять</button>
+      </div></div>`).join('');
+
+  return `
+    <div class="panel"><h3>\u{1F6D2} Лоты одноклассников</h3>
+      <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-bottom:12px">Карты, которые выставили другие игроки. Монеты уходят продавцу.</div>
+      ${othersHTML?`<div class="shop-offers">${othersHTML}</div>`
+        :'<div class="empty-state" style="padding:1.5rem;color:var(--c-ink-soft)">Пока никто ничего не выставил</div>'}
+      <div class="shop-row" style="margin-top:13px"><button class="btn btn-ghost" onclick="loadMarket()">\u{1F504} Обновить</button></div>
+    </div>
+    <div class="panel"><h3>\u{1F4E4} Выставить дубликат</h3>
+      <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-bottom:12px">Цену назначаешь сам. Пока лот висит, карта лежит в залоге — её можно вернуть кнопкой «Снять».</div>
+      ${sellHTML?`<div class="shop-offers">${sellHTML}</div>`
+        :'<div class="empty-state" style="padding:1.5rem;color:var(--c-ink-soft)">Нет повторок для продажи</div>'}
+    </div>
+    <div class="panel"><h3>\u{1F4CB} Мои лоты ${mine.length?'('+mine.length+' из 10)':''}</h3>
+      ${mineHTML?`<div class="shop-offers">${mineHTML}</div>`
+        :'<div class="empty-state" style="padding:1.5rem;color:var(--c-ink-soft)">Ты пока ничего не продаёшь</div>'}
+    </div>`;
+}
+
+if(typeof SB_READY!=='undefined' && SB_READY){
+  const _origRenderShop = window.renderShop;
+  window.renderShop = function(){
+    const cc=document.getElementById('coin-count'); if(cc)cc.textContent=state.coins;
+    const box=document.getElementById('shop-content'); if(!box) return;
+    const tabs=`<div class="shop-tabs">
+      <button class="shop-tab ${shopTab==='trader'?'on':''}" onclick="setShopTab('trader')">\u{1F3EA} Скупщик</button>
+      <button class="shop-tab ${shopTab==='market'?'on':''}" onclick="setShopTab('market')">\u{1F6D2} Рынок</button></div>`;
+    if(shopTab==='trader'){ _origRenderShop(); box.insertAdjacentHTML('afterbegin', tabs); }
+    else { box.innerHTML = tabs + marketHTML(); }
+  };
+
+  const _origRenderAdmin2 = window.renderAdmin;
+  window.renderAdmin = function(){
+    _origRenderAdmin2();
+    if(!document.getElementById('trade-log-panel')){
+      const main=document.getElementById('screen-admin');
+      if(main) main.insertAdjacentHTML('beforeend',
+        `<div class="panel" id="trade-log-panel"><h3>\u{1F4DC} Журнал сделок</h3>
+          <div id="trade-log-body" style="font-size:13px;font-weight:700;color:var(--c-ink-soft)">Загружаем...</div></div>`);
+    }
+    loadTradeLog();
+  };
+}
+
+async function loadTradeLog(){
+  const el=document.getElementById('trade-log-body'); if(!el) return;
+  const { data, error } = await sb.rpc('trade_log');
+  if(error){ el.textContent='Не удалось загрузить'; return; }
+  if(!data || !data.length){ el.textContent='Сделок пока не было.'; return; }
+  el.innerHTML=`<div style="overflow-x:auto"><table class="log-table">
+    <tr><th>Карта</th><th>Цена</th><th>Продал</th><th>Купил</th><th>Когда</th></tr>
+    ${data.map(t=>`<tr>
+      <td>${t.card_name} <span style="color:var(--c-ink-soft)">${rLabel(t.rarity)}</span></td>
+      <td>\u{1FA99} ${t.price}</td><td>${t.seller||'—'}</td><td>${t.buyer||'—'}</td>
+      <td style="color:var(--c-ink-soft)">${new Date(t.closed_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+    </tr>`).join('')}
+  </table></div>`;
+}
+</script>
+
 </body>
 </html>
