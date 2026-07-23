@@ -656,7 +656,7 @@
           <div class="booster-inner"><div class="booster-logo">&#10022;</div><div class="booster-set" id="pack-set-name">AcadeCards</div><div class="booster-foot">5 карт внутри</div></div>
         </div>
         <div><button class="btn btn-primary" id="open-pack-btn" onclick="openPack()" disabled>Открыть пак!</button></div>
-        <p class="hint">Паки выдаёт учитель за хорошие оценки</p>
+        <p class="hint">Паки выдаёт админ за хорошие оценки</p>
       </div>
     </div>
     <div class="screen" id="screen-collection">
@@ -2183,7 +2183,7 @@ function connectServer(){
     c.insertAdjacentHTML('beforeend',
       `<div class="panel" style="margin-top:14px"><h3>\u{1F464} Аккаунт</h3>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <div style="font-size:13px;font-weight:800;color:var(--c-ink)">Ты вошёл как <b>${who}</b>${state.isAdmin?' \u2022 учитель':''}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--c-ink)">Ты вошёл как <b>${who}</b>${state.isAdmin?' \u2022 админ':''}</div>
           <button class="btn btn-red" style="box-shadow:0 3px 0 #C2352F" onclick="doLogout()">Выйти</button>
         </div></div>`);
   };
