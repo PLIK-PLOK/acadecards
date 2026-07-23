@@ -1,0 +1,2223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AcadeCards — школьная карточная игра</title>
+<meta name="theme-color" content="#14532F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AcadeCards">
+<meta name="description" content="Школьная коллекционная карточная игра">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314532F'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23C9E7A2'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314532F'/%3E%3Ctext x='32' y='44' font-size='36' text-anchor='middle' fill='%23C9E7A2'%3E%E2%9C%A6%3C/text%3E%3C/svg%3E">
+
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --c-lime:#C9E7A2; --c-leaf:#A6D477; --c-green:#7FC264; --c-green-d:#5AAA5B;
+    --c-emerald:#3D9257; --c-forest:#226E43; --c-pine:#14532F; --c-night:#0C3A21; --c-abyss:#052314;
+    --c-cream:#F3FBE7; --c-paper:#FFFFFF; --c-ink:#123A24; --c-ink-soft:#4E6E58;
+    --c-gold:#FFCE4A; --c-gold-d:#DFA01B; --c-gold-l:#FFE9A8;
+    --sh-hard:0 5px 0; --r-lg:20px; --r-md:14px; --r-sm:10px;
+  }
+  body{
+    font-family:'Nunito',system-ui,sans-serif; font-weight:700; color:var(--c-ink); min-height:100vh;
+    -webkit-text-size-adjust:100%; text-size-adjust:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(166,212,119,.35), transparent 55%),
+      radial-gradient(circle at 12% 88%, rgba(61,146,87,.35), transparent 45%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.035) 0 2px, transparent 2px 9px),
+      linear-gradient(175deg, #1C6A42 0%, #14532F 45%, #0C3A21 100%);
+    background-attachment:fixed;
+  }
+  body::before{ content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(ellipse at center, transparent 52%, rgba(5,35,20,.65) 100%); }
+  .app{ display:flex; flex-direction:column; min-height:100vh; position:relative; z-index:1; }
+  @supports (min-height:100dvh){ body,.app{ min-height:100dvh; } }
+
+  /* ─── NAV ─── */
+  .nav{
+    height:66px; padding:0 1rem; display:flex; align-items:center; gap:.4rem; position:sticky; top:0; z-index:50;
+    background:linear-gradient(180deg,#2E8250 0%,#1D6640 52%,#12492B 100%);
+    border-bottom:4px solid var(--c-abyss);
+    box-shadow:0 6px 0 rgba(5,35,20,.45), 0 14px 30px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.28);
+  }
+  .nav::after{ content:''; position:absolute; left:0; right:0; bottom:-4px; height:3px;
+    background:linear-gradient(90deg,transparent,var(--c-leaf),var(--c-lime),var(--c-leaf),transparent); opacity:.65; }
+  .nav-logo{
+    font-family:'Russo One',sans-serif; font-size:20px; color:#fff; margin-right:auto; letter-spacing:.5px;
+    display:flex; align-items:center; gap:9px;
+    text-shadow:0 2px 0 var(--c-pine), 0 0 16px rgba(201,231,162,.55);
+  }
+  .spark{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; font-size:16px;
+    background:linear-gradient(160deg,var(--c-lime),var(--c-green) 55%,var(--c-emerald));
+    color:var(--c-pine); border:2px solid var(--c-abyss); border-radius:9px;
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 3px 0 var(--c-abyss);
+    animation:spin-slow 6s linear infinite; }
+  @keyframes spin-slow{ to{ transform:rotate(360deg); } }
+  .nav-tab{
+    font-family:'Nunito'; font-weight:900; font-size:13px; color:#EAF7DA; cursor:pointer; padding:8px 12px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.06));
+    border:2px solid rgba(5,35,20,.5); border-radius:12px;
+    box-shadow:0 3px 0 rgba(5,35,20,.45), inset 0 1px 0 rgba(255,255,255,.35);
+    transition:transform .1s, background .15s, color .15s;
+  }
+  .nav-tab .ic{ font-size:15px; line-height:1; }
+  .nav-tab:hover:not(.active){ transform:translateY(-1px); background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.12)); }
+  .nav-tab.active{
+    background:linear-gradient(180deg,var(--c-lime),var(--c-leaf) 60%,var(--c-green));
+    color:var(--c-pine); border-color:var(--c-abyss);
+    box-shadow:0 3px 0 var(--c-abyss), inset 0 2px 0 rgba(255,255,255,.75), 0 0 16px rgba(201,231,162,.5);
+  }
+  .main{ flex:1; padding:1.4rem 1.1rem 2.5rem; max-width:1000px; margin:0 auto; width:100%; }
+
+  /* ─── SCREENS / HEADERS ─── */
+  .screen{ display:none; animation:fadeUp .35s cubic-bezier(.34,1.4,.64,1); }
+  .screen.active{ display:block; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(12px);} to{ opacity:1; transform:none;} }
+  .page-header{ margin-bottom:1.15rem; }
+  .page-title{
+    font-family:'Russo One',sans-serif; font-size:27px; color:#fff; line-height:1.1;
+    text-shadow:0 3px 0 var(--c-pine), 0 5px 12px rgba(0,0,0,.5);
+    display:inline-block; padding-bottom:5px; position:relative;
+  }
+  .page-title::after{ content:''; position:absolute; left:0; bottom:0; width:100%; height:4px; border-radius:99px;
+    background:linear-gradient(90deg,var(--c-lime),var(--c-green) 55%,transparent); }
+  .page-sub{ font-size:13px; color:#CFE6BE; font-weight:700; margin-top:5px; }
+
+  /* ─── BUTTONS ─── */
+  .btn{ font-family:'Nunito'; font-weight:900; cursor:pointer; border:none; transition:transform .1s, box-shadow .1s, filter .15s;
+    font-size:15px; padding:13px 28px; border-radius:var(--r-md); letter-spacing:.2px; }
+  .btn-primary{
+    background:linear-gradient(180deg,#B7E489 0%,#84C765 40%,#4FA157 100%);
+    color:#0E3D22; border:2.5px solid var(--c-abyss);
+    box-shadow:0 6px 0 #0E3D22, 0 10px 18px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.7);
+    text-shadow:0 1px 0 rgba(255,255,255,.5);
+  }
+  .btn-primary:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 8px 0 #0E3D22, 0 14px 22px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.7); }
+  .btn-primary:active:not(:disabled){ transform:translateY(4px); box-shadow:0 2px 0 #0E3D22, inset 0 2px 0 rgba(255,255,255,.5); }
+  .btn-primary:disabled{ filter:grayscale(.7) brightness(.9); opacity:.55; cursor:not-allowed; box-shadow:0 4px 0 #2b3b30; }
+  .btn-ghost{
+    background:linear-gradient(180deg,#FFFFFF,#E6F4D6); color:var(--c-forest); border:2.5px solid var(--c-forest);
+    box-shadow:0 4px 0 var(--c-forest), inset 0 2px 0 #fff; font-size:13px; padding:9px 16px; border-radius:12px;
+  }
+  .btn-ghost:hover{ transform:translateY(-1px); box-shadow:0 5px 0 var(--c-forest), inset 0 2px 0 #fff; }
+  .btn-ghost:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--c-forest); }
+  .btn-mini{ padding:6px 12px; font-size:12px; border-radius:9px; box-shadow:0 3px 0 currentColor; }
+  .btn-red{ background:linear-gradient(180deg,#FFF,#FFE3E3); color:#C2352F; border:2.5px solid #C2352F; box-shadow:0 3px 0 #C2352F, inset 0 2px 0 #fff; }
+  .btn-red:active{ transform:translateY(2px); box-shadow:0 1px 0 #C2352F; }
+  .hint{ font-size:12px; color:#CFE6BE; margin-top:14px; font-weight:700; }
+
+  /* ─── PANELS ─── */
+  .panel{
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream));
+    border:3px solid var(--c-pine); border-radius:var(--r-lg); padding:1.15rem 1.15rem 1.25rem; margin-bottom:1.1rem;
+    box-shadow:0 6px 0 rgba(5,35,20,.55), 0 14px 28px rgba(0,0,0,.35), inset 0 2px 0 #fff;
+    position:relative;
+  }
+  .panel::before{ content:''; position:absolute; top:0; left:14px; right:14px; height:3px; border-radius:0 0 6px 6px;
+    background:linear-gradient(90deg,transparent,var(--c-leaf),transparent); opacity:.9; }
+  .panel h3{
+    font-family:'Russo One',sans-serif; font-size:15px; color:var(--c-forest); margin-bottom:13px;
+    display:flex; align-items:center; gap:9px; padding-bottom:9px; border-bottom:2.5px dashed rgba(34,110,67,.28);
+  }
+
+  /* ─── PACK SCREEN ─── */
+  .pack-stage{
+    position:relative; text-align:center; padding:2.2rem 1rem 1.4rem; border-radius:26px; overflow:hidden;
+    background:radial-gradient(ellipse at 50% 32%, rgba(201,231,162,.35), rgba(20,83,47,.55) 62%, rgba(6,40,23,.85) 100%);
+    border:3px solid var(--c-pine);
+    box-shadow:0 8px 0 rgba(5,35,20,.5), 0 18px 40px rgba(0,0,0,.5), inset 0 0 60px rgba(0,0,0,.35);
+  }
+  .rays{ position:absolute; inset:-55%; z-index:0; opacity:.32;
+    background:repeating-conic-gradient(from 0deg, rgba(201,231,162,0) 0deg 7deg, rgba(201,231,162,.5) 7deg 14deg);
+    animation:spin-slow 26s linear infinite; }
+  .pack-stage>*{ position:relative; z-index:1; }
+  .pack-pill{
+    display:inline-flex; align-items:center; gap:11px; padding:9px 20px; margin-bottom:1.1rem;
+    background:linear-gradient(180deg,#fff,var(--c-cream)); border:3px solid var(--c-pine); border-radius:16px;
+    box-shadow:0 5px 0 rgba(5,35,20,.6), inset 0 2px 0 #fff;
+  }
+  .pack-num{ font-family:'Russo One',sans-serif; font-size:29px; color:var(--c-forest); line-height:1; }
+  .pack-pill .lbl{ font-size:11px; color:var(--c-ink-soft); font-weight:900; text-align:left; text-transform:uppercase; letter-spacing:.03em; }
+
+  /* ─── BOOSTER ─── */
+  .booster{
+    user-select:none; -webkit-user-select:none; touch-action:none;
+    width:158px; height:222px; margin:0 auto 1.2rem; border-radius:10px 10px 13px 13px; position:relative; cursor:pointer; overflow:hidden;
+    border:3px solid var(--c-abyss);
+    background:
+      repeating-linear-gradient(112deg, rgba(255,255,255,.16) 0 6px, transparent 6px 15px),
+      linear-gradient(150deg,#D8F0AE 0%,#8FCB6A 32%,#3D9257 62%,#7FC264 82%,#C9E7A2 100%);
+    background-size:auto, 210% 210%;
+    box-shadow:0 12px 0 rgba(5,35,20,.5), 0 20px 40px rgba(0,0,0,.55), inset 0 0 34px rgba(255,255,255,.3);
+    animation:foilMove 4s ease-in-out infinite; transition:transform .14s;
+  }
+  .booster:hover{ transform:translateY(-4px) scale(1.02); }
+  @keyframes foilMove{ 0%,100%{ background-position:0 0, 0% 50%; } 50%{ background-position:0 0, 100% 50%; } }
+  .booster::after{ content:''; position:absolute; top:0; left:-60%; width:36%; height:100%; pointer-events:none;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.8),transparent); transform:skewX(-20deg);
+    animation:packShine 3.4s ease-in-out infinite; }
+  @keyframes packShine{ 0%{ left:-60%; } 55%,100%{ left:155%; } }
+  .booster-lid{
+    position:absolute; top:0; left:-3px; right:-3px; height:32px; z-index:3; transform-origin:center top;
+    background:linear-gradient(180deg,#2E8250,#14532F);
+    border-bottom:3px dashed rgba(255,255,255,.75);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.3);
+    transition:transform .5s ease-in, opacity .5s;
+  }
+  .booster-lid.torn{ transform:translateY(-180px) rotate(12deg); opacity:0; }
+  .booster-inner{ position:absolute; inset:34px 9px 9px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; }
+  .booster-logo{ font-size:44px; filter:drop-shadow(0 3px 5px rgba(6,40,23,.6)); }
+  .booster-set{ font-family:'Russo One',sans-serif; font-size:15px; color:#0E3D22; line-height:1.08; padding:0 4px;
+    text-shadow:0 1px 0 rgba(255,255,255,.6); }
+  .booster-foot{ font-size:10px; font-weight:900; color:#14532F; background:rgba(255,255,255,.62); padding:3px 10px; border-radius:99px; border:1.5px solid rgba(20,83,47,.35); }
+
+  /* ─── CARDS ─── */
+  .cards-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(142px,1fr)); gap:14px; margin-top:1rem; }
+  .creature-card{
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border-radius:15px; overflow:hidden; cursor:pointer;
+    position:relative; aspect-ratio:5/7; display:flex; flex-direction:column;
+    border:3px solid var(--c-pine);
+    box-shadow:0 5px 0 rgba(5,35,20,.5), 0 10px 20px rgba(0,0,0,.3), inset 0 2px 0 #fff;
+    transition:transform .18s cubic-bezier(.34,1.4,.64,1), box-shadow .18s;
+  }
+  .creature-card:hover{ transform:translateY(-6px) rotate(-1.2deg); box-shadow:0 11px 0 rgba(5,35,20,.5), 0 18px 30px rgba(0,0,0,.4), inset 0 2px 0 #fff; }
+  .creature-card::after{ content:''; position:absolute; top:0; left:-120%; width:58%; height:100%; z-index:4; pointer-events:none;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.75),transparent); transform:skewX(-20deg); transition:left .6s; }
+  .creature-card:hover::after{ left:150%; }
+  .card-frame-common{ border-color:#5C7A66; }
+  .card-frame-rare{ border-color:#1D5FA8; box-shadow:0 5px 0 #0F3E70, 0 10px 20px rgba(0,0,0,.3), inset 0 2px 0 #fff; }
+  .card-frame-epic{ border-color:#7A32B8; box-shadow:0 5px 0 #4E1D78, 0 10px 20px rgba(0,0,0,.3), inset 0 2px 0 #fff; }
+  .card-frame-legendary{ border-color:var(--c-gold);
+    box-shadow:0 5px 0 var(--c-gold-d), 0 10px 26px rgba(255,206,74,.45), inset 0 2px 0 #fff, 0 0 0 1px var(--c-gold-l); }
+  .card-top{ padding:6px 9px 3px; }
+  .card-name{ font-family:'Russo One',sans-serif; font-size:12px; color:var(--c-ink); line-height:1.05; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card-art{ flex:1; min-height:0; margin:0 6px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-size:52px; position:relative; overflow:hidden; box-shadow:inset 0 0 0 2px rgba(18,58,36,.14); }
+  .card-art img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .art-common{ background:linear-gradient(150deg,#EDF3E6,#D6E2CE); }
+  .art-rare{ background:linear-gradient(150deg,#DCEBFF,#A9CBF7); }
+  .art-epic{ background:linear-gradient(150deg,#F0E0FF,#D3B0F8); }
+  .art-legendary{ background:linear-gradient(150deg,#FFF4CC,#FFD968,#FFC22E); animation:legGlow 2.2s ease-in-out infinite alternate; }
+  @keyframes legGlow{ from{ box-shadow:inset 0 0 16px rgba(255,255,255,.5); } to{ box-shadow:inset 0 0 30px rgba(255,170,20,.8); } }
+  .rarity-badge{ position:absolute; top:6px; right:6px; font-size:8px; font-weight:900; padding:3px 8px; border-radius:99px;
+    text-transform:uppercase; letter-spacing:.05em; z-index:2; border:1.5px solid rgba(0,0,0,.25); }
+  .rb-common{ background:#E4EBDD; color:#4E6E58; }
+  .rb-rare{ background:linear-gradient(180deg,#4C8DF0,#1D5FA8); color:#fff; }
+  .rb-epic{ background:linear-gradient(180deg,#B15CF0,#7A32B8); color:#fff; }
+  .rb-legendary{ background:linear-gradient(180deg,#FFDC6B,#E0A21C); color:#5A3A00; box-shadow:0 0 10px rgba(255,206,74,.8); }
+  .card-foot{ padding:5px 9px 8px; }
+  .card-type{ font-size:10px; color:var(--c-ink-soft); font-weight:800; margin-bottom:5px; }
+  .card-stats{ display:flex; gap:7px; }
+  .stat{ font-size:11px; font-weight:900; display:flex; align-items:center; gap:2px; }
+  .stat-atk{ color:#D53E32; } .stat-def{ color:#1D5FA8; } .stat-spd{ color:#2E8250; }
+  .creature-card.fullcard{ display:block; }
+  .creature-card.fullcard .full-img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .pick-check{ position:absolute; top:6px; left:6px; width:25px; height:25px; border-radius:50%; z-index:5;
+    background:linear-gradient(180deg,var(--c-lime),var(--c-green)); color:var(--c-pine); border:2px solid var(--c-abyss);
+    font-family:'Russo One'; font-size:12px; display:none; align-items:center; justify-content:center; box-shadow:0 2px 0 var(--c-abyss); }
+  .pickable{ cursor:pointer; } .pickable.picked{ transform:translateY(-5px); box-shadow:0 10px 0 var(--c-abyss), 0 0 0 4px var(--c-lime), 0 16px 26px rgba(0,0,0,.4); }
+  .pickable.picked .pick-check{ display:flex; }
+  .bank-card{ position:relative; }
+  .bank-del{ position:absolute; top:5px; left:5px; width:25px; height:25px; border-radius:50%; z-index:6; cursor:pointer;
+    background:#fff; color:#C2352F; border:2px solid #C2352F; font-weight:900; font-size:12px;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 0 #C2352F; }
+  .bank-del:hover{ background:#FFE3E3; }
+  .count-badge{ position:absolute; top:6px; left:6px; z-index:5; font-family:'Russo One'; font-size:12px; padding:3px 10px; border-radius:99px;
+    background:linear-gradient(180deg,#2E8250,#14532F); color:#fff; border:2px solid var(--c-abyss); box-shadow:0 2px 0 var(--c-abyss); }
+  .pickable .count-badge{ top:auto; bottom:7px; }
+  .dup-ribbon{ position:absolute; top:10px; left:-25px; transform:rotate(-45deg); z-index:6;
+    background:linear-gradient(180deg,#4E6E58,#2F4A38); color:#fff; font-size:8px; font-weight:900; letter-spacing:.05em;
+    padding:3px 26px; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+
+  /* ─── FILTERS / PROGRESS ─── */
+  .filter-row{ display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .filter-btn{ font-family:'Nunito'; font-weight:900; font-size:12px; cursor:pointer; padding:7px 14px; border-radius:99px;
+    background:rgba(255,255,255,.14); color:#DDF0CB; border:2px solid rgba(5,35,20,.45);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25); transition:all .14s; }
+  .filter-btn:hover:not(.active){ background:rgba(255,255,255,.26); transform:translateY(-1px); }
+  .filter-btn.active{ background:linear-gradient(180deg,var(--c-lime),var(--c-green)); color:var(--c-pine);
+    border-color:var(--c-abyss); box-shadow:0 3px 0 var(--c-abyss), inset 0 1px 0 rgba(255,255,255,.6); }
+  .coll-progress{ margin-top:13px; }
+  .coll-toolbar{ display:grid; grid-template-columns:1fr 165px 165px auto; gap:9px; align-items:center; margin-top:14px; }
+  .coll-toolbar .input-field{ background:rgba(255,255,255,.94); }
+  .coll-toggle{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:900; color:#CFE6BE; cursor:pointer;
+    white-space:nowrap; text-shadow:0 2px 0 rgba(5,35,20,.6); }
+  .coll-toggle input{ width:17px; height:17px; accent-color:var(--c-green); cursor:pointer; }
+  @media (max-width:760px){ .coll-toolbar{ grid-template-columns:1fr 1fr; } .coll-toolbar .input-field:first-child{ grid-column:1/-1; } .coll-toggle{ grid-column:1/-1; } }
+  .locked-card{ background:linear-gradient(180deg,#1B5B39,#0F4527); cursor:default;
+    border-color:rgba(201,231,162,.3) !important; box-shadow:0 4px 0 rgba(5,35,20,.5), inset 0 2px 0 rgba(255,255,255,.12) !important; }
+  .locked-card:hover{ transform:none; }
+  .locked-card::after{ display:none; }
+  .locked-card .card-name{ color:rgba(233,247,218,.6); }
+  .locked-card .card-type{ color:rgba(233,247,218,.38); }
+  .locked-card .card-art{ background:rgba(0,0,0,.3) !important; animation:none !important;
+    color:rgba(201,231,162,.45); font-family:'Russo One',sans-serif; font-size:40px;
+    box-shadow:inset 0 0 0 2px rgba(201,231,162,.16) !important; }
+  .locked-card .rarity-badge{ filter:grayscale(.55); opacity:.7; }
+  .locked-card .card-stats{ opacity:.35; }
+  .archive-chip{ position:absolute; bottom:7px; right:7px; z-index:5; font-size:8px; font-weight:900; letter-spacing:.05em;
+    text-transform:uppercase; padding:2px 8px; border-radius:99px; background:rgba(12,58,33,.92); color:#CFE6BE;
+    border:1.5px solid rgba(201,231,162,.45); }
+  .coll-progress-bar{ height:14px; border-radius:99px; overflow:hidden; background:rgba(5,35,20,.55);
+    border:2.5px solid var(--c-abyss); box-shadow:inset 0 2px 5px rgba(0,0,0,.5); }
+  .coll-progress-fill{ height:100%; width:0; border-radius:99px; transition:width .7s cubic-bezier(.34,1.4,.64,1);
+    background:linear-gradient(180deg,#D9F2B4,#8FCB6A 45%,#4FA157);
+    box-shadow:inset 0 2px 0 rgba(255,255,255,.65), 0 0 12px rgba(201,231,162,.6); }
+  .coll-progress-lbl{ font-size:12px; font-weight:900; color:#CFE6BE; margin-top:6px; }
+
+  /* ─── ADMIN ─── */
+  .student-row{ display:flex; align-items:center; gap:10px; padding:9px 13px; margin-bottom:8px; border-radius:13px;
+    background:linear-gradient(180deg,#F7FCEF,#E9F5DA); border:2px solid rgba(34,110,67,.3); box-shadow:inset 0 1px 0 #fff; }
+  .student-name{ flex:1; font-size:13px; font-weight:800; color:var(--c-ink); }
+  .student-packs{ font-family:'Russo One'; font-size:14px; color:var(--c-forest); min-width:48px; }
+  .add-row{ display:flex; gap:8px; margin-top:8px; }
+  .input-field{ width:100%; font-family:'Nunito'; font-weight:700; font-size:13px; padding:10px 13px; color:var(--c-ink);
+    background:#FBFEF6; border:2.5px solid rgba(34,110,67,.35); border-radius:12px; box-shadow:inset 0 2px 4px rgba(18,58,36,.08); }
+  .input-field:focus{ outline:none; border-color:var(--c-green); box-shadow:0 0 0 3px rgba(127,194,100,.3); }
+  select.input-field{ cursor:pointer; }
+  .builder{ display:grid; grid-template-columns:172px 1fr; gap:18px; }
+  @media (max-width:560px){ .builder{ grid-template-columns:1fr; } .builder-preview{ max-width:172px; margin:0 auto; } }
+  .builder-preview{ display:flex; flex-direction:column; gap:10px; }
+  .dropzone{ border:3px dashed var(--c-green); border-radius:15px; background:linear-gradient(180deg,#F7FCEF,#E9F5DA);
+    min-height:118px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;
+    text-align:center; padding:14px; color:var(--c-ink-soft); transition:all .15s; }
+  .dropzone:hover{ background:#EDF8DE; border-color:var(--c-emerald); transform:translateY(-2px); }
+  .dz-icon{ font-size:30px; margin-bottom:6px; } .dz-text{ font-size:11px; font-weight:900; line-height:1.4; }
+  .field{ margin-bottom:12px; } .field label{ display:block; font-size:11px; font-weight:900; color:var(--c-ink-soft);
+    margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+  .field-row{ display:flex; gap:10px; } .field-row .field{ flex:1; }
+  .slider-field{ margin-bottom:14px; }
+  .slider-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+  .s-label{ font-size:11px; font-weight:900; color:var(--c-ink-soft); text-transform:uppercase; letter-spacing:.04em; }
+  .s-val{ font-family:'Russo One'; font-size:15px; }
+  .s-atk{ color:#D53E32; } .s-def{ color:#1D5FA8; } .s-spd{ color:#2E8250; }
+  input[type=range]{ width:100%; accent-color:var(--c-emerald); height:6px; cursor:pointer; }
+  .bank-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:12px; }
+
+  /* ─── PROFILE ─── */
+  .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(142px,1fr)); gap:12px; }
+  .stat-card{ text-align:center; padding:16px 12px; border-radius:var(--r-lg);
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border:3px solid var(--c-pine);
+    box-shadow:0 5px 0 rgba(5,35,20,.5), 0 10px 20px rgba(0,0,0,.3), inset 0 2px 0 #fff; }
+  .stat-num{ font-family:'Russo One'; font-size:26px; color:var(--c-forest); }
+  .stat-lbl{ font-size:11px; color:var(--c-ink-soft); font-weight:900; margin-top:4px; text-transform:uppercase; letter-spacing:.03em; }
+  .stat-card.wide{ grid-column:1/-1; display:flex; align-items:center; gap:16px; text-align:left; }
+  .stat-card.wide .big-emoji{ font-size:42px; line-height:1; }
+
+  /* ─── EMPTY / TOAST ─── */
+  .empty-state{ text-align:center; padding:2.8rem 1rem; color:#CFE6BE; font-weight:800; grid-column:1/-1; }
+  .empty-icon{ font-size:52px; margin-bottom:.7rem; animation:float 3s ease-in-out infinite; }
+  @keyframes float{ 0%,100%{ transform:translateY(0) rotate(-3deg);} 50%{ transform:translateY(-10px) rotate(3deg);} }
+  .toast{ position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%) translateY(130px); z-index:400;
+    background:linear-gradient(180deg,#2E8250,#14532F); color:#fff; padding:13px 22px; border-radius:14px;
+    font-size:13px; font-weight:900; max-width:90vw; text-align:center;
+    border:2.5px solid var(--c-abyss); box-shadow:0 6px 0 var(--c-abyss), 0 12px 26px rgba(0,0,0,.5);
+    transition:transform .38s cubic-bezier(.34,1.5,.64,1); }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+
+  /* ─── REVEAL ─── */
+  .reveal-overlay{ position:fixed; inset:0; z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; gap:1.4rem;
+    background:radial-gradient(ellipse at center, rgba(22,90,54,.9), rgba(4,26,15,.97)); }
+  .reveal-overlay.open{ display:flex; }
+  .reveal-burst{ position:absolute; inset:0; z-index:0; opacity:0; pointer-events:none;
+    background:repeating-conic-gradient(from 0deg, transparent 0deg 6deg, rgba(201,231,162,.45) 6deg 12deg);
+    animation:spin-slow 14s linear infinite; }
+  .reveal-flash{ position:absolute; inset:0; z-index:3; background:#fff; opacity:0; pointer-events:none; }
+  .reveal-flash.flash{ animation:flashAnim .5s ease-out; }
+  @keyframes flashAnim{ 0%{opacity:0} 14%{opacity:.95} 100%{opacity:0} }
+  .reveal-stage{ position:relative; z-index:2; display:flex; align-items:center; justify-content:center; min-height:230px; }
+  .reveal-stage .booster{ margin:0; }
+  .booster.shake{ animation:orbShake .4s ease-in-out; }
+  @keyframes orbShake{ 0%,100%{ transform:rotate(0) scale(1);} 25%{ transform:rotate(-15deg) scale(1.06);} 75%{ transform:rotate(15deg) scale(1.06);} }
+  .reveal-stage .booster.gone{ animation:boosterGone .4s ease-out forwards; }
+  @keyframes boosterGone{ to{ transform:translateY(22px) scale(.7); opacity:0; } }
+  .reveal-title{ position:relative; z-index:2; font-family:'Russo One'; font-size:24px; color:var(--c-lime);
+    text-shadow:0 3px 0 var(--c-pine), 0 0 20px rgba(201,231,162,.85); }
+  .reveal-banner{ position:relative; z-index:2; font-family:'Russo One'; font-size:21px; min-height:26px; opacity:0; transition:opacity .25s; }
+  .reveal-banner.show{ opacity:1; }
+  .banner-legendary{ color:#FFDC6B; text-shadow:0 0 18px rgba(255,206,74,.95), 0 3px 0 #6B4700; }
+  .banner-epic{ color:#D8B4FE; text-shadow:0 0 16px rgba(168,85,247,.9), 0 3px 0 #3D1A63; }
+  .reveal-cards{ position:relative; z-index:2; display:flex; gap:12px; flex-wrap:wrap; justify-content:center; max-width:660px; }
+  .reveal-cards.shake{ animation:shake .4s; }
+  @keyframes specialPulse{ 0%{ box-shadow:0 0 0 rgba(255,206,74,0);} 40%{ box-shadow:0 0 34px rgba(255,206,74,.95);} 100%{ box-shadow:0 6px 0 rgba(5,35,20,.6), 0 14px 26px rgba(0,0,0,.6);} }
+  #reveal-done-btn{ position:relative; z-index:4; }
+
+  /* ─── BATTLE ─── */
+  .battle-select-info{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:11px 16px; margin-bottom:1rem;
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border:3px solid var(--c-pine); border-radius:16px;
+    box-shadow:0 5px 0 rgba(5,35,20,.5), inset 0 2px 0 #fff; }
+  .select-count{ font-family:'Russo One'; font-size:15px; color:var(--c-forest); }
+  .arena{ display:flex; flex-direction:column; gap:12px; }
+  .arena-banner{ display:flex; justify-content:space-between; align-items:center; gap:6px 10px; flex-wrap:wrap;
+    padding:9px 15px; margin-bottom:12px; border-radius:14px; font-size:12px; font-weight:900; color:#EAF7DA;
+    background:linear-gradient(180deg,rgba(46,130,80,.85),rgba(18,73,43,.9)); border:2.5px solid var(--c-abyss);
+    box-shadow:0 4px 0 rgba(5,35,20,.5), inset 0 1px 0 rgba(255,255,255,.25); }
+  .arena-banner b{ color:var(--c-lime); }
+  .ab-right{ font-family:'Russo One'; font-size:12px; color:#CFE6BE; white-space:nowrap; }
+  .big-fighter{ display:flex; gap:13px; align-items:center; padding:11px 13px; border-radius:17px;
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border:3px solid var(--c-pine);
+    box-shadow:0 5px 0 rgba(5,35,20,.5), inset 0 2px 0 #fff; }
+  .big-fighter.foe{ background:linear-gradient(180deg,#FFF4F2,#FDE7E2); border-color:#8A3B32; box-shadow:0 5px 0 #6B2B24, inset 0 2px 0 #fff; }
+  .bf-art{ width:66px; height:66px; flex:none; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    font-size:36px; background:rgba(18,58,36,.08); border:2.5px solid var(--c-pine); overflow:hidden; }
+  .big-fighter.foe .bf-art{ border-color:#8A3B32; background:rgba(138,59,50,.08); }
+  .bf-art img{ width:100%; height:100%; object-fit:cover; }
+  .bf-info{ flex:1; min-width:0; }
+  .bf-name{ font-family:'Russo One'; font-size:14px; color:var(--c-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bf-type{ font-size:11px; color:var(--c-ink-soft); font-weight:800; margin-bottom:6px; }
+  .bf-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:3px; }
+  .mu{ font-size:10px; font-weight:900; } .mu.good{ color:#2E8250; } .mu.bad{ color:#C2352F; }
+  .st-row{ display:flex; gap:3px; } .guard-on{ filter:drop-shadow(0 0 5px rgba(90,170,91,.95)); } .st-ico{ font-size:13px; filter:drop-shadow(0 1px 2px rgba(0,0,0,.35)); }
+  .bench{ display:flex; gap:8px; flex-wrap:wrap; }
+  .bench-chip{ width:54px; padding:5px; border-radius:12px; text-align:center; position:relative;
+    background:rgba(255,255,255,.9); border:2.5px solid var(--c-pine); box-shadow:0 3px 0 rgba(5,35,20,.45); transition:transform .15s; }
+  .bench-chip.dead{ opacity:.32; filter:grayscale(1); }
+  .bc-art{ height:30px; display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; border-radius:7px; }
+  .bc-art img{ width:30px; height:30px; object-fit:cover; border-radius:7px; }
+  .bc-hp{ height:6px; margin-top:3px; border-radius:99px; background:rgba(5,35,20,.45); overflow:hidden; border:1.5px solid var(--c-abyss); }
+  .bc-hp-fill{ height:100%; background:linear-gradient(180deg,#B7E489,#4FA157); transition:width .45s; }
+  .bc-st{ display:flex; gap:1px; justify-content:center; font-size:9px; margin-top:2px; min-height:11px; }
+  .bench-chip.switchable{ cursor:pointer; outline:3px dashed var(--c-lime); outline-offset:2px; }
+  .bench-chip.targetable{ cursor:pointer; outline:3px dashed #FF6B5E; outline-offset:2px; animation:targetPulse 1s ease-in-out infinite; }
+  .bench-chip.switchable:hover,.bench-chip.targetable:hover{ transform:translateY(-3px); }
+  .energy-bar{ display:flex; gap:4px; justify-content:center; }
+  .en-pip{ width:20px; height:9px; border-radius:99px; background:rgba(5,35,20,.5); border:1.5px solid var(--c-abyss); }
+  .en-pip.on{ background:linear-gradient(180deg,#FFE9A8,#FFCE4A); box-shadow:0 0 8px rgba(255,206,74,.7); }
+  .action-bar.six{ grid-template-columns:repeat(6,1fr); }
+  .abtn i{ font-style:normal; font-size:9px; font-weight:900; color:var(--c-forest); background:rgba(34,110,67,.14);
+    padding:1px 6px; border-radius:99px; margin-top:1px; }
+  @media (max-width:640px){ .action-bar.six{ grid-template-columns:repeat(3,1fr); } .bf-art{ width:54px; height:54px; font-size:30px; } }
+  .side-label{ font-family:'Russo One'; font-size:12px; color:#CFE6BE; margin-bottom:7px; display:flex; align-items:center; gap:6px;
+    text-shadow:0 2px 0 rgba(5,35,20,.6); }
+  .team-row{ display:flex; gap:10px; }
+  .fighter{ flex:1; min-width:0; padding:9px 7px; text-align:center; position:relative; border-radius:15px;
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border:3px solid var(--c-pine);
+    box-shadow:0 4px 0 rgba(5,35,20,.5), inset 0 2px 0 #fff; transition:all .25s; }
+  .fighter.active-fighter{ border-color:var(--c-green);
+    box-shadow:0 5px 0 var(--c-forest), 0 0 0 3px var(--c-lime), 0 10px 22px rgba(127,194,100,.45), inset 0 2px 0 #fff;
+    transform:translateY(-4px); }
+  .fighter.fainted{ opacity:.35; filter:grayscale(1); }
+  .fighter-emoji{ font-size:34px; line-height:1.1; height:38px; display:flex; align-items:center; justify-content:center; }
+  .fighter-emoji img{ width:38px; height:38px; border-radius:9px; object-fit:cover; border:2px solid var(--c-pine); }
+  .fighter-name{ font-family:'Russo One'; font-size:10px; color:var(--c-ink); margin:3px 0 1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fighter-type{ font-size:9px; color:var(--c-ink-soft); font-weight:800; }
+  .hp-track{ height:11px; margin-top:6px; border-radius:99px; overflow:hidden; background:rgba(5,35,20,.5);
+    border:2px solid var(--c-abyss); box-shadow:inset 0 2px 4px rgba(0,0,0,.5); }
+  .hp-fill{ height:100%; border-radius:99px; transition:width .5s cubic-bezier(.34,1.4,.64,1);
+    background:linear-gradient(180deg,#B7E489,#4FA157); box-shadow:inset 0 2px 0 rgba(255,255,255,.6); }
+  .hp-fill.mid{ background:linear-gradient(180deg,#FFD86B,#E09A17); }
+  .hp-fill.low{ background:linear-gradient(180deg,#FF8A80,#C2352F); }
+  .hp-text{ font-size:9px; color:var(--c-ink-soft); font-weight:900; margin-top:3px; }
+  .shake{ animation:shake .4s; }
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+  .fighter.targetable{ cursor:pointer; outline:3px dashed #FF6B5E; outline-offset:3px; animation:targetPulse 1s ease-in-out infinite; }
+  @keyframes targetPulse{ 0%,100%{ outline-color:#FF6B5E; } 50%{ outline-color:#FFC9C3; } }
+  .fighter.switchable{ cursor:pointer; outline:3px dashed var(--c-lime); outline-offset:3px; }
+  .fighter .corner-badge{ position:absolute; top:4px; right:4px; font-size:13px; z-index:3; }
+  .fighter .guard-badge{ position:absolute; top:4px; left:4px; font-size:13px; z-index:3; filter:drop-shadow(0 0 4px rgba(59,130,246,.9)); }
+  .battle-center{ text-align:center; padding:15px; border-radius:18px; position:relative; overflow:hidden;
+    background:radial-gradient(ellipse at center, rgba(201,231,162,.28), rgba(20,83,47,.5) 70%);
+    border:3px solid var(--c-pine); box-shadow:0 5px 0 rgba(5,35,20,.5), inset 0 0 30px rgba(0,0,0,.3); }
+  .vs-badge{ font-family:'Russo One'; font-size:13px; color:var(--c-lime); text-shadow:0 2px 0 var(--c-pine); }
+  .dice-box{ font-size:46px; line-height:1; margin:6px 0; display:inline-block; min-height:50px; color:#fff;
+    filter:drop-shadow(0 3px 6px rgba(0,0,0,.5)); }
+  .dice-box.rolling{ animation:diceShake .12s infinite; }
+  @keyframes diceShake{ 0%,100%{ transform:rotate(-12deg) scale(1.05);} 50%{ transform:rotate(12deg) scale(.95);} }
+  .battle-msg{ font-size:13px; font-weight:900; color:#F1FAE6; min-height:20px; text-shadow:0 2px 0 rgba(5,35,20,.6); }
+  .crit-txt{ color:#FFDC6B; font-weight:900; } .super-txt{ color:#A6D477; font-weight:900; } .weak-txt{ color:#FF9E93; font-weight:900; }
+  .action-bar{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .abtn{ font-family:'Nunito'; font-weight:900; font-size:17px; cursor:pointer; padding:10px 4px; border-radius:13px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; color:#0E3D22;
+    background:linear-gradient(180deg,#FFFFFF,#DFF0CB); border:2.5px solid var(--c-pine);
+    box-shadow:0 4px 0 var(--c-pine), inset 0 2px 0 #fff; transition:transform .1s, box-shadow .1s; }
+  .abtn span{ font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.02em; }
+  .abtn:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 6px 0 var(--c-pine), inset 0 2px 0 #fff; }
+  .abtn:active:not(:disabled){ transform:translateY(3px); box-shadow:0 1px 0 var(--c-pine); }
+  .abtn:disabled{ filter:grayscale(.6); opacity:.45; cursor:not-allowed; box-shadow:0 3px 0 #7d8a80; }
+  .abtn.armed{ background:linear-gradient(180deg,var(--c-lime),var(--c-green)); box-shadow:0 4px 0 var(--c-pine), 0 0 18px rgba(201,231,162,.7), inset 0 2px 0 rgba(255,255,255,.7); }
+  .turn-hint{ text-align:center; font-size:12px; font-weight:900; color:#CFE6BE; min-height:16px; }
+  .battle-log{ padding:10px 14px; margin-top:12px; max-height:112px; overflow-y:auto; border-radius:14px;
+    background:rgba(5,35,20,.5); border:2.5px solid rgba(201,231,162,.25); }
+  .log-line{ font-size:12px; color:#CFE6BE; padding:2px 0; font-weight:700; }
+  .result-banner{ text-align:center; padding:1.6rem 1rem; }
+  .result-title{ font-family:'Russo One'; font-size:32px; margin-bottom:8px; }
+  .result-win{ color:var(--c-lime); text-shadow:0 4px 0 var(--c-pine), 0 0 26px rgba(201,231,162,.9); }
+  .result-lose{ color:#CFE6BE; text-shadow:0 3px 0 rgba(5,35,20,.7); }
+
+  /* ─── REVEAL FX ─── */
+  #fx-canvas{ position:absolute; inset:0; z-index:6; pointer-events:none; }
+  .light-column{ position:absolute; left:50%; top:-15%; width:230px; height:135%; transform:translateX(-50%); z-index:1;
+    opacity:0; pointer-events:none; filter:blur(16px); transition:opacity .35s;
+    background:linear-gradient(180deg, rgba(255,214,110,0), rgba(255,214,110,.6) 42%, rgba(255,214,110,0)); }
+  .light-column.on{ opacity:1; }
+  .reveal-overlay.quake{ animation:quake .55s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes quake{ 0%,100%{transform:translate(0,0)} 15%{transform:translate(-9px,5px)} 30%{transform:translate(8px,-6px)}
+    45%{transform:translate(-7px,-4px)} 60%{transform:translate(6px,5px)} 80%{transform:translate(-4px,2px)} }
+  .swipe-hint{ position:relative; z-index:2; font-size:13px; font-weight:900; color:#CFE6BE; display:flex; align-items:center; gap:8px;
+    text-shadow:0 2px 0 rgba(5,35,20,.6); }
+  .sh-arrow{ display:inline-block; font-size:18px; color:var(--c-lime); animation:swipeNudge 1.3s ease-in-out infinite; }
+  @keyframes swipeNudge{ 0%,100%{ transform:translateX(-6px); opacity:.5;} 50%{ transform:translateX(8px); opacity:1;} }
+  .booster.idle{ animation:foilMove 4s ease-in-out infinite, boosterIdle 2.6s ease-in-out infinite; }
+  @keyframes boosterIdle{ 0%,88%,100%{ transform:rotate(0) translateY(0);} 92%{ transform:rotate(-3deg) translateY(-5px);} 96%{ transform:rotate(3deg) translateY(-5px);} }
+  .booster-lid::after{ content:''; position:absolute; left:0; right:0; bottom:-6px; height:7px;
+    background:repeating-linear-gradient(90deg, var(--c-pine) 0 5px, transparent 5px 10px);
+    -webkit-mask:linear-gradient(180deg,#000,transparent); mask:linear-gradient(180deg,#000,transparent); }
+  .reveal-controls{ position:relative; z-index:4; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:12px; }
+  .reveal-counter{ font-family:'Russo One'; font-size:15px; color:var(--c-lime); text-shadow:0 2px 0 var(--c-pine);
+    background:rgba(5,35,20,.5); border:2.5px solid rgba(201,231,162,.35); border-radius:99px; padding:6px 16px; }
+  /* колода */
+  .deck-wrap{ position:relative; width:min(46vw,178px); aspect-ratio:5/7; z-index:2; perspective:1200px; margin:6px auto 0; }
+  .dcard{ position:absolute; inset:0; transition:transform .55s cubic-bezier(.34,1.4,.64,1), opacity .45s; }
+  .dcard.top{ cursor:pointer; }
+  .dc-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; border-radius:15px; touch-action:none;
+    transform:rotateY(180deg); transition:transform .66s cubic-bezier(.34,1.4,.64,1); }
+  .dc-inner.dragging{ transition:none; }
+  .dcard.opened .dc-inner{ cursor:grab; }
+  .dcard.opened .dc-inner.dragging{ cursor:grabbing; }
+  .dc-face{ position:absolute; inset:0; border-radius:15px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  .dc-front .creature-card{ width:100%; height:100%; }
+  .dc-front .creature-card:hover, .ic-front .creature-card:hover{ transform:none; }
+  .dc-back{ transform:rotateY(180deg); border:3px solid var(--c-abyss); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 0 rgba(5,35,20,.55), 0 14px 26px rgba(0,0,0,.6);
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 7px, transparent 7px 16px),
+      linear-gradient(150deg,#C9E7A2,#7FC264 38%,#226E43 78%,#14532F); }
+  .dc-back-emblem{ font-size:44px; color:rgba(255,255,255,.78); text-shadow:0 3px 10px rgba(6,40,23,.7); animation:spin-slow 9s linear infinite; }
+  .dc-gloss{ position:absolute; inset:0; border-radius:15px; pointer-events:none; opacity:0; mix-blend-mode:screen;
+    background:linear-gradient(115deg,transparent 34%,rgba(255,255,255,.55) 46%,rgba(180,255,190,.45) 50%,rgba(255,240,180,.45) 55%,transparent 68%);
+    background-size:250% 250%; background-position:50% 50%; transition:opacity .3s; }
+  .dcard.opened .dc-gloss{ opacity:.6; }
+  .deck-hint{ position:relative; z-index:4; font-size:12px; font-weight:900; color:#CFE6BE; min-height:16px;
+    text-shadow:0 2px 0 rgba(5,35,20,.6); text-align:center; }
+  .rules-overlay{ position:fixed; inset:0; z-index:350; display:none; align-items:center; justify-content:center; padding:16px;
+    background:radial-gradient(ellipse at center, rgba(22,90,54,.92), rgba(3,20,11,.97)); }
+  .rules-overlay.open{ display:flex; }
+  .rules-box{ width:min(96vw,640px); max-height:88vh; display:flex; flex-direction:column; border-radius:20px; overflow:hidden;
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border:3px solid var(--c-pine);
+    box-shadow:0 8px 0 rgba(5,35,20,.6), 0 20px 44px rgba(0,0,0,.6); }
+  .rules-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 16px; flex:none;
+    background:linear-gradient(180deg,#2E8250,#14532F); color:#fff; font-family:'Russo One'; font-size:16px;
+    border-bottom:3px solid var(--c-abyss); text-shadow:0 2px 0 rgba(5,35,20,.6); }
+  .rules-x{ background:rgba(255,255,255,.2); border:2px solid rgba(255,255,255,.35); color:#fff; width:30px; height:30px;
+    border-radius:9px; cursor:pointer; font-weight:900; font-size:13px; flex:none; }
+  .rules-x:hover{ background:rgba(255,255,255,.34); }
+  .rules-body{ padding:14px 16px; overflow-y:auto; flex:1; }
+  .rules-foot{ padding:12px 16px; flex:none; text-align:center; border-top:2px dashed rgba(34,110,67,.3); }
+  .r-sec{ margin-bottom:18px; }
+  .r-sec h4{ font-family:'Russo One'; font-size:14px; color:var(--c-forest); margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .r-sec p{ font-size:13px; font-weight:700; color:var(--c-ink-soft); line-height:1.5; }
+  .r-row{ display:flex; align-items:flex-start; gap:10px; padding:8px 11px; margin-bottom:6px; border-radius:12px;
+    background:#FBFEF6; border:2px solid rgba(34,110,67,.22); }
+  .r-ico{ font-size:19px; flex:none; width:24px; text-align:center; }
+  .r-txt{ flex:1; min-width:0; }
+  .r-name{ font-size:13px; font-weight:900; color:var(--c-ink); }
+  .r-desc{ font-size:12px; font-weight:700; color:var(--c-ink-soft); line-height:1.4; }
+  .r-cost{ flex:none; font-family:'Russo One'; font-size:11px; color:var(--c-forest);
+    background:rgba(34,110,67,.14); padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .r-type-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .r-type{ font-size:11px; font-weight:800; padding:5px 10px; border-radius:10px; background:#FBFEF6;
+    border:2px solid rgba(34,110,67,.22); color:var(--c-ink); }
+  .r-type b{ color:var(--c-forest); }
+  .r-dice{ display:flex; gap:8px; flex-wrap:wrap; }
+  .r-die{ flex:1; min-width:96px; text-align:center; padding:10px; border-radius:12px; background:#FBFEF6; border:2px solid rgba(34,110,67,.22); }
+  .r-die .f{ font-size:26px; } .r-die .t{ font-size:11px; font-weight:900; color:var(--c-ink-soft); margin-top:2px; }
+  .rules-hint-btn{ background:rgba(255,255,255,.22); border:2px solid rgba(255,255,255,.4); color:#fff; cursor:pointer;
+    font-weight:900; font-size:11px; padding:3px 10px; border-radius:99px; }
+  @media (max-width:640px){ .rules-box{ max-height:82vh; } .rules-head{ font-size:14px; } }
+  /* ─── ЛАВКА ─── */
+  .coin-pill{ display:inline-flex; align-items:center; gap:7px; margin-top:11px; padding:7px 16px; border-radius:99px;
+    font-size:14px; font-weight:900; color:#5A3A00;
+    background:linear-gradient(180deg,#FFE9A8,#FFCE4A); border:2.5px solid var(--c-abyss);
+    box-shadow:0 4px 0 var(--c-gold-d), inset 0 2px 0 rgba(255,255,255,.7); }
+  .coin-pill b{ font-family:'Russo One'; font-size:17px; }
+  .shop-offers{ display:grid; grid-template-columns:repeat(auto-fill,minmax(142px,1fr)); gap:12px; }
+  .offer{ position:relative; }
+  .offer .creature-card{ cursor:default; }
+  .offer .creature-card:hover{ transform:none; }
+  .offer-buy{ width:100%; margin-top:7px; font-family:'Nunito'; font-weight:900; font-size:12px; cursor:pointer;
+    padding:8px 6px; border-radius:11px; color:#5A3A00;
+    background:linear-gradient(180deg,#FFE9A8,#FFCE4A); border:2.5px solid var(--c-abyss);
+    box-shadow:0 3px 0 var(--c-gold-d), inset 0 1px 0 rgba(255,255,255,.6); }
+  .offer-buy:hover:not(:disabled){ transform:translateY(-1px); }
+  .offer-buy:active:not(:disabled){ transform:translateY(2px); box-shadow:0 1px 0 var(--c-gold-d); }
+  .offer-buy:disabled{ filter:grayscale(.75); opacity:.5; cursor:not-allowed; }
+  .offer.sold .creature-card{ opacity:.4; filter:grayscale(.8); }
+  .sold-stamp{ position:absolute; top:38%; left:50%; transform:translate(-50%,-50%) rotate(-14deg); z-index:8;
+    font-family:'Russo One'; font-size:15px; color:#fff; padding:4px 14px; border-radius:8px;
+    background:rgba(194,53,47,.92); border:2.5px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.4); }
+  .sell-item{ position:relative; }
+  .sell-item .creature-card{ cursor:default; } .sell-item .creature-card:hover{ transform:none; }
+  .sell-btn{ width:100%; margin-top:7px; font-family:'Nunito'; font-weight:900; font-size:12px; cursor:pointer;
+    padding:8px 6px; border-radius:11px; color:var(--c-forest);
+    background:linear-gradient(180deg,#FFFFFF,#E6F4D6); border:2.5px solid var(--c-forest);
+    box-shadow:0 3px 0 var(--c-forest), inset 0 1px 0 #fff; }
+  .sell-btn:hover{ transform:translateY(-1px); } .sell-btn:active{ transform:translateY(2px); box-shadow:0 1px 0 var(--c-forest); }
+  .shop-row{ display:flex; align-items:center; gap:13px; flex-wrap:wrap; }
+  .shop-row .grow{ flex:1; min-width:150px; }
+  .price-tag{ font-family:'Russo One'; font-size:13px; color:#5A3A00; background:linear-gradient(180deg,#FFE9A8,#FFCE4A);
+    border:2px solid var(--c-gold-d); border-radius:99px; padding:3px 11px; white-space:nowrap; }
+  .rate-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:8px; }
+  .rate-cell{ text-align:center; padding:9px 6px; border-radius:11px; background:#FBFEF6; border:2px solid rgba(34,110,67,.22); }
+  .rate-cell .rn{ font-size:11px; font-weight:900; color:var(--c-ink-soft); }
+  .rate-cell .rv{ font-family:'Russo One'; font-size:14px; color:var(--c-forest); margin-top:2px; }
+  .inspect-overlay{ position:fixed; inset:0; z-index:300; display:none; flex-direction:column; align-items:center; justify-content:center; gap:1.2rem;
+    background:radial-gradient(ellipse at center, rgba(22,90,54,.92), rgba(3,20,11,.98)); }
+  .inspect-overlay.open{ display:flex; }
+  .inspect-stage{ perspective:1100px; }
+  .inspect-card{ width:min(64vw,272px); aspect-ratio:5/7; position:relative; transform-style:preserve-3d; cursor:grab; touch-action:none;
+    transition:transform .12s ease-out; border-radius:16px; box-shadow:0 30px 70px rgba(0,0,0,.75); }
+  .inspect-card.dragging{ cursor:grabbing; transition:none; }
+  .ic-face{ position:absolute; inset:0; border-radius:16px; overflow:hidden; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+  .ic-front{ background:#0C3A21; border:3px solid var(--c-lime); }
+  .ic-front img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .ic-front .creature-card{ width:100%; height:100%; }
+  .ic-back{ transform:rotateY(180deg); border:3px solid var(--c-abyss); display:flex; align-items:center; justify-content:center;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 8px, transparent 8px 18px),
+      linear-gradient(150deg,#C9E7A2,#7FC264 38%,#226E43 78%,#14532F); }
+  .ic-back .ic-emblem{ font-size:84px; color:rgba(255,255,255,.7); text-shadow:0 4px 14px rgba(6,40,23,.7); }
+  .ic-back .ic-brand{ position:absolute; bottom:18px; font-family:'Russo One'; font-size:15px; color:rgba(14,61,34,.85); }
+  .inspect-gloss{ position:absolute; inset:0; border-radius:16px; pointer-events:none; backface-visibility:hidden;
+    mix-blend-mode:screen; opacity:.55; background-size:260% 260%; background-position:50% 50%;
+    background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.5) 44%,rgba(180,255,190,.45) 49%,rgba(255,240,180,.45) 54%,transparent 68%); }
+  .inspect-hint{ font-size:12px; font-weight:900; color:#CFE6BE; display:flex; align-items:center; gap:6px; }
+
+  ::-webkit-scrollbar{ width:9px; }
+  ::-webkit-scrollbar-track{ background:rgba(5,35,20,.35); }
+  ::-webkit-scrollbar-thumb{ background:linear-gradient(180deg,var(--c-leaf),var(--c-emerald)); border-radius:5px; border:2px solid rgba(5,35,20,.4); }
+  /* ═══ МОБИЛЬНАЯ ВЕРСИЯ ═══ */
+  @media (max-width:640px){
+    .nav{
+      position:fixed; top:auto; bottom:0; left:0; right:0; height:auto; z-index:60;
+      padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+      display:grid; grid-template-columns:repeat(6,1fr); gap:4px;
+      border-bottom:none; border-top:4px solid var(--c-abyss);
+      box-shadow:0 -6px 0 rgba(5,35,20,.45), 0 -12px 26px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.2);
+    }
+    .nav::after{ display:none; }
+    .nav-logo{ display:none; }
+    .nav-tab{ flex-direction:column; gap:2px; padding:8px 2px; font-size:9px; border-radius:11px; min-height:46px; }
+    .nav-tab .ic{ font-size:18px; }
+    .main{ padding:1rem .7rem calc(96px + env(safe-area-inset-bottom,0px)); }
+    .page-title{ font-size:21px; } .page-sub{ font-size:12px; }
+    .panel{ padding:1rem .85rem 1.1rem; border-radius:17px; }
+    .cards-grid{ grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px; }
+    .bank-grid{ grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:9px; }
+    .filter-btn{ padding:8px 13px; }
+    .btn{ padding:13px 22px; }
+    .reveal-controls{ flex-wrap:wrap; justify-content:center; gap:9px; padding:0 10px; }
+    .reveal-overlay{ gap:1rem; padding:12px; }
+    .reveal-title{ font-size:19px; } .reveal-banner{ font-size:17px; }
+    .booster{ width:142px; height:200px; }
+    .arena-banner{ font-size:11px; padding:8px 12px; }
+    .big-fighter{ padding:9px 10px; gap:10px; }
+    .bf-name{ font-size:13px; } .bf-type{ font-size:10px; }
+    .bench-chip{ width:48px; padding:4px; }
+    .bc-art{ height:26px; font-size:19px; } .bc-art img{ width:26px; height:26px; }
+    .en-pip{ width:15px; height:8px; }
+    .abtn{ font-size:15px; padding:9px 3px; } .abtn span{ font-size:9px; } .abtn i{ font-size:8px; }
+    .battle-select-info{ flex-wrap:wrap; gap:9px; }
+    .stats-grid{ grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:10px; }
+    .stat-num{ font-size:22px; }
+    .toast{ bottom:calc(88px + env(safe-area-inset-bottom,0px)); }
+    body{ background-attachment:scroll; }
+  }
+  @media (max-width:380px){
+    .nav-tab{ font-size:8px; padding:7px 1px; } .nav-tab .ic{ font-size:16px; }
+    .cards-grid{ grid-template-columns:repeat(2,1fr); }
+    .action-bar.six{ grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav">
+    <div class="nav-logo"><span class="spark">&#10022;</span> AcadeCards</div>
+    <button class="nav-tab active" data-s="packs" onclick="showScreen('packs', this)"><span class="ic">&#128230;</span><span class="lb">Паки</span></button>
+    <button class="nav-tab" data-s="collection" onclick="showScreen('collection', this)"><span class="ic">&#127183;</span><span class="lb">Карты</span></button>
+    <button class="nav-tab" data-s="shop" onclick="showScreen('shop', this)"><span class="ic">&#128722;</span><span class="lb">Лавка</span></button>
+    <button class="nav-tab" data-s="battle" onclick="showScreen('battle', this)"><span class="ic">&#9876;&#65039;</span><span class="lb">Бой</span></button>
+    <button class="nav-tab" data-s="profile" onclick="showScreen('profile', this)"><span class="ic">&#128100;</span><span class="lb">Профиль</span></button>
+    <button class="nav-tab" data-s="admin" onclick="showScreen('admin', this)"><span class="ic">&#9881;&#65039;</span><span class="lb">Админ</span></button>
+  </nav>
+  <div class="main">
+    <div class="screen active" id="screen-packs">
+      <div class="page-header"><div class="page-title">Открыть пак</div><div class="page-sub">В каждом паке 5 случайных существ</div></div>
+      <div class="pack-stage"><div class="rays"></div>
+        <div class="pack-pill"><div class="pack-num" id="pack-count">0</div><div class="lbl">паков<br>доступно</div></div>
+        <div class="booster" id="pack-booster" onclick="openPack()">
+          <div class="booster-lid"></div>
+          <div class="booster-inner"><div class="booster-logo">&#10022;</div><div class="booster-set" id="pack-set-name">AcadeCards</div><div class="booster-foot">5 карт внутри</div></div>
+        </div>
+        <div><button class="btn btn-primary" id="open-pack-btn" onclick="openPack()" disabled>Открыть пак!</button></div>
+        <p class="hint">Паки выдаёт учитель за хорошие оценки</p>
+      </div>
+    </div>
+    <div class="screen" id="screen-collection">
+      <div class="page-header"><div class="page-title">Моя коллекция</div><div class="page-sub" id="collection-sub">0 существ собрано</div>
+        <div class="coll-progress"><div class="coll-progress-bar"><div class="coll-progress-fill" id="coll-fill"></div></div><div class="coll-progress-lbl" id="coll-lbl">Собрано 0 из 0 существ</div></div>
+      </div>
+      <div class="coll-toolbar">
+        <input class="input-field" id="coll-search" placeholder="&#128269; Поиск по имени..." oninput="setCollQuery(this.value)">
+        <select class="input-field" id="coll-season" onchange="setCollSeason(this.value)"></select>
+        <select class="input-field" id="coll-sort" onchange="setCollSort(this.value)">
+          <option value="rarity">Сначала редкие</option>
+          <option value="name">По имени</option>
+          <option value="count">По количеству</option>
+          <option value="type">По стихии</option>
+        </select>
+        <label class="coll-toggle"><input type="checkbox" id="coll-missing" onchange="setCollMissing(this.checked)"> Показывать несобранные</label>
+      </div>
+      <div class="filter-row"><button class="filter-btn active" onclick="filterCollection('all', this)">Все</button><button class="filter-btn" onclick="filterCollection('common', this)">Обычные</button><button class="filter-btn" onclick="filterCollection('rare', this)">Редкие</button><button class="filter-btn" onclick="filterCollection('epic', this)">Эпические</button><button class="filter-btn" onclick="filterCollection('legendary', this)">Легендарные</button></div>
+      <div class="cards-grid" id="collection-grid"></div>
+    </div>
+    <div class="screen" id="screen-shop">
+      <div class="page-header"><div class="page-title">Лавка</div><div class="page-sub">Продавай дубликаты, покупай нужное</div>
+        <div class="coin-pill">&#129689; <b id="coin-count">0</b> монет</div>
+      </div>
+      <div id="shop-content"></div>
+    </div>
+    <div class="screen" id="screen-battle">
+      <div class="page-header"><div class="page-title">Карточный бой</div><div class="page-sub" id="battle-sub">Выбери существ для команды</div>
+        <button class="btn btn-ghost" style="margin-top:10px" onclick="openRules()">&#10067; Как играть</button>
+      </div>
+      <div id="battle-content"></div>
+    </div>
+    <div class="screen" id="screen-profile">
+      <div class="page-header"><div class="page-title">Профиль игрока</div><div class="page-sub">Твоя статистика и достижения</div></div>
+      <div id="profile-content"></div>
+    </div>
+    <div class="screen" id="screen-admin">
+      <div class="page-header"><div class="page-title">Панель админа</div><div class="page-sub">Создавай карточки и управляй паками</div></div>
+
+      <div class="panel"><h3>&#127809; Сезоны (наборы)</h3>
+        <div style="font-size:12px;color:var(--c-ink-soft);font-weight:500;margin-bottom:10px">Открывается только активный сезон. Старые сезоны уходят в архив — их карты больше не выпадают.</div>
+        <div id="sets-list"></div>
+        <div class="add-row"><input class="input-field" id="new-set-name" placeholder="Название сезона, напр. Лето 2026..." style="flex:1"><button class="btn btn-ghost" onclick="addSet()">Создать</button></div>
+      </div>
+
+      <div class="panel"><h3>&#127912; Создать карточку</h3>
+        <div style="font-size:12px;color:var(--c-ink-soft);font-weight:500;margin-bottom:12px">Загрузи целую карту картинкой (со статами на ней). Характеристики ниже — для боя, их можно осмотреть кругом по клику в коллекции.</div>
+        <div class="builder">
+          <div class="builder-preview">
+            <div id="preview-card"></div>
+            <input type="file" id="img-input" accept="image/*" style="display:none" onchange="onImagePicked(event)">
+            <div class="dropzone" id="dropzone" onclick="document.getElementById('img-input').click()">
+              <div class="dz-icon">&#128247;</div><div class="dz-text" id="dz-text">Нажми, чтобы<br>загрузить карту</div>
+            </div>
+          </div>
+          <div class="builder-form">
+            <div class="field"><label>Название существа</label><input class="input-field" id="f-name" placeholder="Напр. Пиролис" oninput="updatePreview()"></div>
+            <div class="field-row">
+              <div class="field"><label>Стихия</label><select class="input-field" id="f-type" onchange="updatePreview()"></select></div>
+              <div class="field"><label>Редкость</label><select class="input-field" id="f-rarity" onchange="updatePreview()"><option value="common">Обычная</option><option value="rare">Редкая</option><option value="epic">Эпическая</option><option value="legendary">Легендарная</option></select></div>
+            </div>
+            <div class="field"><label>Сезон карты</label><select class="input-field" id="f-set"></select></div>
+            <div class="field" id="emoji-field"><label>Эмодзи (если без картинки)</label><input class="input-field" id="f-emoji" placeholder="&#128293;" maxlength="4" oninput="updatePreview()"></div>
+            <div class="slider-field"><div class="slider-head"><span class="s-label">&#9876;&#65039; Атака</span><span class="s-val s-atk" id="v-atk">50</span></div><input type="range" id="f-atk" min="10" max="99" value="50" oninput="updatePreview()"></div>
+            <div class="slider-field"><div class="slider-head"><span class="s-label">&#128737; Защита</span><span class="s-val s-def" id="v-def">50</span></div><input type="range" id="f-def" min="10" max="99" value="50" oninput="updatePreview()"></div>
+            <div class="slider-field"><div class="slider-head"><span class="s-label">&#9889; Скорость</span><span class="s-val s-spd" id="v-spd">50</span></div><input type="range" id="f-spd" min="10" max="99" value="50" oninput="updatePreview()"></div>
+            <button class="btn btn-primary" style="width:100%" onclick="addCard()">&#10133; Добавить в банк</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel"><h3>&#128218; Банк карточек <span id="bank-count" style="font-family:'Rubik';font-weight:600;font-size:13px;color:var(--c-ink-soft)"></span></h3>
+        <div class="bank-grid" id="bank-grid"></div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1.5px dashed #F0E2B8">
+          <button class="btn btn-ghost" onclick="generateCards()" id="gen-btn">&#10024; Сгенерировать ИИ</button>
+          <span style="font-size:11px;color:var(--c-ink-soft);font-weight:500;margin-left:8px">(нужен свой API-ключ Anthropic)</span>
+          <div id="gen-status" style="font-size:12px;color:var(--c-ink-soft);font-weight:500;margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="panel"><h3>&#128101; Ученики</h3><div id="students-list"></div>
+        <div class="add-row"><input class="input-field" id="new-student-name" placeholder="Имя ученика..." style="flex:1"><button class="btn btn-ghost" onclick="addStudent()">Добавить</button></div>
+      </div>
+
+      <div class="panel"><h3>&#128190; Данные</h3>
+        <div style="font-size:13px;color:var(--c-ink-soft);font-weight:500;margin-bottom:12px">Всё сохраняется в этом браузере. Можно сбросить всё к начальному состоянию.</div>
+        <button class="btn btn-red" style="box-shadow:0 3px 0 #E84545" onclick="resetAll()">&#9888;&#65039; Сбросить всё</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="reveal-overlay" id="reveal-overlay">
+  <div class="reveal-burst" id="reveal-burst"></div>
+  <div class="light-column" id="light-column"></div>
+  <div class="reveal-flash" id="reveal-flash"></div>
+  <div class="reveal-stage" id="reveal-stage"><div class="booster idle" id="open-booster"><div class="booster-lid" id="booster-lid"></div><div class="booster-inner"><div class="booster-logo">&#10022;</div><div class="booster-set" id="open-set-name">AcadeCards</div><div class="booster-foot">5 карт</div></div></div></div>
+  <div class="swipe-hint" id="swipe-hint"><span class="sh-arrow">&#8594;</span> Проведи по паку, чтобы вскрыть</div>
+  <div class="reveal-title" id="reveal-title" style="display:none">&#10024; Открой свои карты</div>
+  <div class="reveal-banner" id="reveal-banner"></div>
+  <div class="reveal-cards" id="reveal-cards"></div>
+  <div class="deck-hint" id="deck-hint"></div>
+  <div class="reveal-controls" id="reveal-controls" style="display:none">
+    <div class="reveal-counter" id="reveal-counter">0 / 5</div>
+    <button class="btn btn-primary" id="deck-next-btn" onclick="nextCard()" style="display:none;padding:11px 22px;font-size:14px">Дальше &#8594;</button>
+    <button class="btn btn-ghost" id="open-all-btn" onclick="openAllCards()">Открыть все</button>
+  </div>
+  <button class="btn btn-primary" id="reveal-done-btn" onclick="closeReveal()" style="display:none">В коллекцию &#8594;</button>
+  <canvas id="fx-canvas"></canvas>
+</div>
+<div class="inspect-overlay" id="inspect-overlay">
+  <div class="inspect-stage">
+    <div class="inspect-card" id="inspect-card">
+      <div class="ic-face ic-front" id="ic-front"></div>
+      <div class="ic-face ic-back"><div class="ic-emblem">&#10022;</div><div class="ic-brand">AcadeCards</div></div>
+      <div class="inspect-gloss" id="inspect-gloss"></div>
+    </div>
+  </div>
+  <div class="inspect-hint">&#128072; Тяни, чтобы покрутить карту</div>
+  <button class="btn btn-primary" onclick="closeInspect()">Закрыть</button>
+</div>
+<div class="rules-overlay" id="rules-overlay">
+  <div class="rules-box">
+    <div class="rules-head"><span>&#9876;&#65039; Как играть в бой</span><button class="rules-x" onclick="closeRules()">&#10005;</button></div>
+    <div class="rules-body" id="rules-body"></div>
+    <div class="rules-foot"><button class="btn btn-primary" onclick="closeRules()">Понятно!</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const TYPES = ['Огненный','Водяной','Земляной','Воздушный','Тёмный','Световой','Электрический','Ядовитый','Ледяной','Космический'];
+const STRONG = { 'Огненный':['Ледяной','Земляной'],'Водяной':['Огненный','Земляной'],'Земляной':['Электрический','Ядовитый'],'Воздушный':['Земляной','Ядовитый'],'Электрический':['Водяной','Воздушный'],'Ледяной':['Воздушный','Космический'],'Тёмный':['Световой','Космический'],'Световой':['Тёмный','Ядовитый'],'Ядовитый':['Водяной','Световой'],'Космический':['Тёмный','Электрический'] };
+function typeMult(a,d){ if((STRONG[a]||[]).includes(d))return 1.3; if((STRONG[d]||[]).includes(a))return 0.7; return 1; }
+const DICE = ['','\u2680','\u2681','\u2682','\u2683','\u2684','\u2685'];
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+/* ── Звук (Web Audio, без файлов) ── */
+let audioCtx=null, soundOn=true;
+function actx(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return audioCtx; }
+function beep(freq,dur,type='sine',vol=0.18,when=0){ const c=actx(); if(!c)return; const o=c.createOscillator(),g=c.createGain(); o.type=type; o.frequency.value=freq; o.connect(g); g.connect(c.destination); const t=c.currentTime+when; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur); o.start(t); o.stop(t+dur+0.03); }
+function sfx(name){ if(!soundOn)return; const c=actx(); if(!c)return; if(c.state==='suspended')c.resume();
+  switch(name){
+    case 'click': beep(440,0.06,'square',0.08); break;
+    case 'shake': beep(150,0.09,'sawtooth',0.07); break;
+    case 'burst': beep(160,0.22,'sawtooth',0.18); beep(330,0.28,'sine',0.13,0.02); beep(660,0.36,'triangle',0.1,0.05); break;
+    case 'common': beep(440,0.12,'sine',0.14); break;
+    case 'rare': beep(523,0.12,'sine',0.15); beep(659,0.16,'sine',0.13,0.08); break;
+    case 'epic': beep(523,0.12,'sine',0.15); beep(659,0.12,'sine',0.15,0.08); beep(784,0.22,'sine',0.15,0.16); break;
+    case 'legendary': [523,659,784,1047].forEach((f,i)=>beep(f,0.32,'triangle',0.17,i*0.1)); break;
+    case 'hit': beep(210,0.07,'square',0.12); break;
+    case 'crit': beep(300,0.05,'square',0.16); beep(520,0.13,'square',0.15,0.05); break;
+    case 'faint': beep(300,0.18,'sawtooth',0.14); beep(140,0.3,'sawtooth',0.14,0.1); break;
+    case 'win': [523,659,784,1047,1319].forEach((f,i)=>beep(f,0.26,'triangle',0.17,i*0.11)); break;
+    case 'lose': [392,330,262].forEach((f,i)=>beep(f,0.3,'sine',0.15,i*0.15)); break;
+  }
+}
+function toggleSound(){ soundOn=!soundOn; const pb=document.getElementById('sound-toggle-btn'); if(pb)pb.innerHTML=(soundOn?'\u{1F50A}':'\u{1F507}')+' Звук: '+(soundOn?'включён':'выключен'); if(soundOn){ const c=actx(); if(c&&c.state==='suspended')c.resume(); sfx('click'); } }
+const STORAGE_KEY = 'acadecards-state-v3';
+
+let state = { packs:3, collection:[], cardBank:[], wins:0, coins:50, sets:[{id:'s1',name:'Сезон 1',active:true}], students:[{id:1,name:'Иван П.',packs:3},{id:2,name:'Маша К.',packs:1},{id:3,name:'Артём С.',packs:0}] };
+function activeSet(){ return (state.sets&&state.sets.find(s=>s.active))||(state.sets&&state.sets[0]); }
+function activeSetId(){ const s=activeSet(); return s?s.id:null; }
+function migrate(){
+  if(typeof state.coins!=='number')state.coins=50;
+  if(!state.sets||!state.sets.length) state.sets=[{id:'s1',name:'Сезон 1',active:true}];
+  if(!state.sets.some(s=>s.active)) state.sets[0].active=true;
+  const act=activeSet().id;
+  state.cardBank.forEach(c=>{ if(!c.setId)c.setId=act; });
+}
+function loadState(){ try{ const r=localStorage.getItem(STORAGE_KEY); if(r)Object.assign(state,JSON.parse(r)); }catch(e){} migrate(); }
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){ showToast('\u26A0\uFE0F Память браузера переполнена — удали часть карт'); } }
+function resetAll(){ if(confirm('Сбросить всю коллекцию, банк карт и учеников? Это нельзя отменить.')){ localStorage.removeItem(STORAGE_KEY); location.reload(); } }
+
+function showScreen(name,btn){ sfx('click'); window.scrollTo(0,0); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active')); document.getElementById('screen-'+name).classList.add('active'); if(btn)btn.classList.add('active'); if(name==='collection')renderCollection(); if(name==='admin')renderAdmin(); if(name==='packs')renderPackScreen(); if(name==='battle')renderBattleSelect(); if(name==='profile')renderProfile(); if(name==='shop')renderShop(); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
+
+function rb(r){return {common:'rb-common',rare:'rb-rare',epic:'rb-epic',legendary:'rb-legendary'}[r]||'rb-common';}
+function frame(r){return {common:'card-frame-common',rare:'card-frame-rare',epic:'card-frame-epic',legendary:'card-frame-legendary'}[r]||'card-frame-common';}
+function art(r){return {common:'art-common',rare:'art-rare',epic:'art-epic',legendary:'art-legendary'}[r]||'art-common';}
+function rLabel(r){return {common:'Обычная',rare:'Редкая',epic:'Эпик',legendary:'Легенда'}[r]||r;}
+function artInner(c){ return c.image ? `<img src="${c.image}" alt="">` : (c.emoji||'\u2753'); }
+
+function makeCardHTML(c,opts={}){
+  const badges=`${opts.check?'<div class="pick-check">\u2713</div>':''}${opts.del?`<button class="bank-del" onclick="deleteCard('${c.id}')">\u2715</button>`:''}${opts.count&&opts.count>1?`<div class="count-badge">\u00D7${opts.count}</div>`:''}${opts.dup?'<div class="dup-ribbon">ПОВТОР</div>':''}${opts.archive?'<div class="archive-chip">Архив</div>':''}`;
+  const click=opts.onclick?`onclick="${opts.onclick}"`:'';
+  if(c.image){
+    return `<div class="creature-card fullcard ${frame(c.rarity)} ${opts.cls||''}" ${click}>${badges}<img class="full-img" src="${c.image}" alt=""><span class="rarity-badge ${rb(c.rarity)}">${rLabel(c.rarity)}</span></div>`;
+  }
+  return `<div class="creature-card ${frame(c.rarity)} ${opts.cls||''}" ${click}>${badges}
+    <div class="card-top"><div class="card-name">${c.name||'Без имени'}</div></div>
+    <div class="card-art ${art(c.rarity)}">${artInner(c)}<span class="rarity-badge ${rb(c.rarity)}">${rLabel(c.rarity)}</span></div>
+    <div class="card-foot"><div class="card-type">${c.type}</div>
+      <div class="card-stats"><span class="stat stat-atk">\u2694\uFE0F${c.atk}</span><span class="stat stat-def">\u{1F6E1}${c.def}</span><span class="stat stat-spd">\u26A1${c.spd}</span></div>
+    </div></div>`;
+}
+function groupedCollection(){ const m=new Map(); state.collection.forEach(c=>{ const g=m.get(c.id); if(g)g.count++; else m.set(c.id,{card:c,count:1}); }); return [...m.values()]; }
+
+function renderPackScreen(){
+  document.getElementById('pack-count').textContent=state.packs;
+  const as=activeSet(); const cnt=state.cardBank.filter(c=>c.setId===activeSetId()).length;
+  const nm=document.getElementById('pack-set-name'); if(nm)nm.textContent=as?as.name:'AcadeCards';
+  document.getElementById('open-pack-btn').disabled=state.packs===0;
+}
+async function openPack(){
+  if(state.packs<=0)return;
+  const pool0=state.cardBank.filter(c=>c.setId===activeSetId());
+  if(pool0.length<5){ showToast('В активном сезоне меньше 5 карт — создай ещё в админке!'); return; }
+  state.packs--; renderPackScreen();
+  const owned=new Set(state.collection.map(c=>c.id));
+  const drawn=[];
+  for(let i=0;i<5;i++){ const roll=Math.random(); let pool;
+    if(roll<0.03)pool=pool0.filter(c=>c.rarity==='legendary'); else if(roll<0.15)pool=pool0.filter(c=>c.rarity==='epic'); else if(roll<0.40)pool=pool0.filter(c=>c.rarity==='rare'); else pool=pool0.filter(c=>c.rarity==='common');
+    if(!pool||!pool.length)pool=pool0; const picked=pool[Math.floor(Math.random()*pool.length)];
+    const inst={...picked,uid:Date.now()+i,dup:owned.has(picked.id)}; owned.add(picked.id); drawn.push(inst); }
+  drawn.forEach(c=>state.collection.push(c)); saveState(); showReveal(drawn);
+}
+/* ═══ ЧАСТИЦЫ (canvas) ═══ */
+const FX={cv:null,ctx:null,parts:[],raf:0,dpr:1};
+function fxInit(){
+  FX.cv=document.getElementById('fx-canvas'); if(!FX.cv)return; FX.ctx=FX.cv.getContext('2d');
+  fxResize(); window.addEventListener('resize',fxResize);
+}
+function fxResize(){ if(!FX.cv)return; FX.dpr=Math.min(window.devicePixelRatio||1,2);
+  FX.cv.width=innerWidth*FX.dpr; FX.cv.height=innerHeight*FX.dpr; FX.cv.style.width=innerWidth+'px'; FX.cv.style.height=innerHeight+'px';
+  FX.ctx.setTransform(FX.dpr,0,0,FX.dpr,0,0); }
+function fxBurst(x,y,o={}){
+  if(!FX.ctx)return;
+  const n=o.count||90, colors=o.colors||['#C9E7A2','#7FC264','#FFCE4A','#FFFFFF'];
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, sp=(o.speed||5)*(0.35+Math.random());
+    const conf=o.confetti&&Math.random()<0.45;
+    FX.parts.push({ x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-(o.lift||1.2),
+      g:o.gravity||0.16, life:1, decay:0.008+Math.random()*0.014,
+      size:(o.size||4)*(0.5+Math.random()), col:colors[(Math.random()*colors.length)|0],
+      conf, rot:Math.random()*6.28, vr:(Math.random()-0.5)*0.35, spin:Math.random()*6.28 });
+  }
+  fxStart();
+}
+function fxRing(x,y,col){ if(!FX.ctx)return; FX.parts.push({ring:true,x,y,r:8,vr2:9,life:1,decay:0.035,col:col||'#FFCE4A'}); fxStart(); }
+function fxStart(){ if(!FX.raf) FX.raf=requestAnimationFrame(fxLoop); }
+function fxLoop(){
+  const c=FX.ctx; if(!c){FX.raf=0;return;}
+  c.clearRect(0,0,innerWidth,innerHeight);
+  for(let i=FX.parts.length-1;i>=0;i--){
+    const p=FX.parts[i]; p.life-=p.decay;
+    if(p.life<=0){ FX.parts.splice(i,1); continue; }
+    if(p.ring){
+      p.r+=p.vr2; p.vr2*=0.94;
+      c.globalAlpha=Math.max(0,p.life)*0.55; c.strokeStyle=p.col; c.lineWidth=3;
+      c.beginPath(); c.arc(p.x,p.y,p.r,0,6.283); c.stroke(); continue;
+    }
+    p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.vx*=0.99;
+    c.globalAlpha=Math.max(0,p.life);
+    c.fillStyle=p.col;
+    if(p.conf){ p.rot+=p.vr; c.save(); c.translate(p.x,p.y); c.rotate(p.rot);
+      c.fillRect(-p.size,-p.size*0.55,p.size*2,p.size*1.1); c.restore(); }
+    else { c.beginPath(); c.arc(p.x,p.y,p.size,0,6.283); c.fill(); }
+  }
+  c.globalAlpha=1;
+  FX.raf = FX.parts.length ? requestAnimationFrame(fxLoop) : 0;
+}
+function elCenter(el){ const r=el.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; }
+
+/* ═══ ОТКРЫТИЕ ПАКА ═══ */
+let revealCards=[], flippedCount=0, tearArmed=false, tearBusy=false;
+const RARITY_FX={
+  common:{colors:['#E4EBDD','#C9D6C0','#FFFFFF'],count:26,speed:3.4},
+  rare:{colors:['#8FC4FF','#2F7CE0','#FFFFFF'],count:44,speed:4.2},
+  epic:{colors:['#D8B4FE','#9333EA','#F0E0FF'],count:80,speed:5.4},
+  legendary:{colors:['#FFDC6B','#FFCE4A','#FF9A3D','#FFFFFF'],count:170,speed:7.2}
+};
+
+async function showReveal(cards){
+  revealCards=cards; flippedCount=0; tearBusy=false;
+  const ov=document.getElementById('reveal-overlay'), burst=document.getElementById('reveal-burst');
+  const stage=document.getElementById('reveal-stage'), booster=document.getElementById('open-booster'), lid=document.getElementById('booster-lid');
+  const hint=document.getElementById('swipe-hint'), title=document.getElementById('reveal-title');
+  const cont=document.getElementById('reveal-cards'), banner=document.getElementById('reveal-banner');
+  const ctrls=document.getElementById('reveal-controls'), done=document.getElementById('reveal-done-btn');
+  const col=document.getElementById('light-column');
+  cont.innerHTML=''; title.style.display='none'; done.style.display='none'; ctrls.style.display='none';
+  banner.className='reveal-banner'; banner.textContent='';
+  stage.style.display='flex'; booster.style.display='block'; booster.className='booster idle';
+  booster.style.transform=''; booster.style.boxShadow='';
+  lid.className='booster-lid'; lid.style.transform=''; lid.style.opacity=''; lid.style.transition='';
+  hint.style.display='flex'; burst.style.opacity='0'; col.classList.remove('on');
+  const as=activeSet(); const on=document.getElementById('open-set-name'); if(on)on.textContent=as?as.name:'AcadeCards';
+  const best=cards.reduce((m,c)=>({common:0,rare:1,epic:2,legendary:3})[c.rarity]>({common:0,rare:1,epic:2,legendary:3})[m]?c.rarity:m,'common');
+  if(best==='legendary') booster.style.boxShadow='0 0 55px rgba(255,206,74,.9), 0 12px 0 rgba(5,35,20,.5)';
+  ov.classList.add('open'); tearArmed=true;
+}
+
+function applyTear(prog,dir){
+  const booster=document.getElementById('open-booster'), lid=document.getElementById('booster-lid');
+  booster.classList.remove('idle');
+  lid.style.transform=`translateX(${dir*prog*150}px) translateY(${-prog*14}px) rotate(${dir*prog*16}deg)`;
+  lid.style.opacity=String(1-prog*0.5);
+  booster.style.transform=`rotate(${dir*prog*4}deg) translateY(${prog*4}px)`;
+  if(prog>0.25&&Math.random()<0.25){ const p=elCenter(lid); fxBurst(p.x+dir*40,p.y,{count:3,speed:2,size:2.5,gravity:.12,colors:['#C9E7A2','#FFFFFF']}); }
+}
+
+async function doTear(){
+  if(tearBusy)return; tearBusy=true; tearArmed=false;
+  const burst=document.getElementById('reveal-burst'), flash=document.getElementById('reveal-flash');
+  const stage=document.getElementById('reveal-stage'), booster=document.getElementById('open-booster'), lid=document.getElementById('booster-lid');
+  const hint=document.getElementById('swipe-hint'), title=document.getElementById('reveal-title');
+  const ctrls=document.getElementById('reveal-controls'), ov=document.getElementById('reveal-overlay');
+  hint.style.display='none';
+  const c=elCenter(booster);
+  lid.style.transition='transform .5s ease-in, opacity .5s'; lid.style.transform=''; lid.style.opacity=''; lid.classList.add('torn');
+  flash.classList.add('flash'); sfx('burst');
+  fxRing(c.x,c.y,'#C9E7A2');
+  fxBurst(c.x,c.y-40,{count:130,speed:7,size:4.5,gravity:.2,confetti:true,colors:['#C9E7A2','#7FC264','#3D9257','#FFCE4A','#FFFFFF']});
+  ov.classList.add('quake'); setTimeout(()=>ov.classList.remove('quake'),560);
+  await sleep(240);
+  burst.style.transition='opacity .5s'; burst.style.opacity='.4';
+  await sleep(200); setTimeout(()=>flash.classList.remove('flash'),120);
+  booster.classList.add('gone'); await sleep(300);
+  booster.style.display='none'; stage.style.display='none';
+  title.style.display='block';
+  buildDeck();
+  ctrls.style.display='flex';
+  tearBusy=false;
+}
+
+let deck=[], deckIdx=0, deckOpen=false, revealedCount=0, deckRot={rx:0,ry:0};
+function heroScale(big){ const base=window.innerWidth<420?1.28:1.5; return big?base+0.24:base; }
+
+function buildDeck(){
+  const cont=document.getElementById('reveal-cards');
+  cont.innerHTML='<div class="deck-wrap" id="deck-wrap"></div>';
+  const wrap=document.getElementById('deck-wrap');
+  deck=[]; deckIdx=0; deckOpen=false; revealedCount=0;
+  revealCards.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='dcard'; d.id='dc-'+i;
+    d.innerHTML=`<div class="dc-inner" id="dci-${i}">
+        <div class="dc-face dc-back"><div class="dc-back-emblem">\u2726</div></div>
+        <div class="dc-face dc-front">${makeCardHTML(c,{dup:c.dup})}<div class="dc-gloss" id="dcg-${i}"></div></div>
+      </div>`;
+    d.style.opacity='0'; d.style.transform='translateY(40px) scale(.75)';
+    d.addEventListener('click',()=>{ if(!deckOpen && deckIdx===i) openTop(); });
+    wrap.appendChild(d); deck.push(d);
+  });
+  // карты «слетаются» в стопку
+  for(let i=revealCards.length-1;i>=0;i--){ setTimeout(()=>{ deck[i].style.opacity='1'; layoutDeck(); }, 80+(revealCards.length-1-i)*90); }
+  setDeckHint('Нажми на колоду, чтобы открыть карту');
+  updateCounter();
+}
+function layoutDeck(){
+  for(let i=deckIdx;i<deck.length;i++){
+    const d=deck[i], depth=i-deckIdx;
+    if(depth>4){ d.style.opacity='0'; continue; }
+    d.style.zIndex=String(100-depth);
+    d.style.transform=`translateY(${-depth*7}px) translateX(${depth*2.5}px) rotate(${(depth%2?1:-1)*depth*0.9}deg) scale(${1-depth*0.03})`;
+    d.classList.toggle('top', i===deckIdx);
+  }
+}
+function setDeckHint(t){ const el=document.getElementById('deck-hint'); if(el)el.textContent=t; }
+function updateCounter(){ const el=document.getElementById('reveal-counter'); if(el)el.textContent=`${revealedCount} / ${revealCards.length}`; }
+function applyDeckRot(){
+  const inner=document.getElementById('dci-'+deckIdx); if(!inner)return;
+  inner.style.transform=`rotateX(${deckRot.rx}deg) rotateY(${deckRot.ry}deg)`;
+  const g=document.getElementById('dcg-'+deckIdx);
+  if(g) g.style.backgroundPosition=`${50+deckRot.ry*0.5}% ${50-deckRot.rx*0.5}%`;
+}
+
+async function openTop(){
+  if(deckOpen) return;
+  const i=deckIdx, c=revealCards[i], d=deck[i]; if(!d) return;
+  deckOpen=true; deckRot={rx:0,ry:0};
+  d.classList.add('opened'); d.classList.remove('top');
+  d.style.zIndex='200';
+  d.style.transform=`translateY(-8px) scale(${heroScale(false)})`;
+  const inner=document.getElementById('dci-'+i);
+  inner.style.transition='transform .66s cubic-bezier(.34,1.4,.64,1)';
+  inner.style.transform='rotateX(0deg) rotateY(0deg)';
+  sfx(c.rarity);
+  setDeckHint('');
+  await sleep(360);
+  const p=elCenter(d), fx=RARITY_FX[c.rarity]||RARITY_FX.common;
+  fxBurst(p.x,p.y,{count:fx.count,speed:fx.speed,size:c.rarity==='legendary'?5:3.6,gravity:.18,
+    confetti:c.rarity!=='common',colors:fx.colors});
+  revealedCount++; updateCounter();
+  if(c.rarity==='legendary') await legendaryMoment(d,p);
+  else if(c.rarity==='epic') await epicMoment(d,p);
+  const nb=document.getElementById('deck-next-btn');
+  if(nb){ nb.textContent = (deckIdx>=revealCards.length-1) ? 'Готово \u2192' : 'Дальше \u2192'; nb.style.display='inline-block'; }
+  setDeckHint('\u{1F446} Покрути карту, чтобы рассмотреть');
+}
+
+async function nextCard(){
+  if(!deckOpen) return;
+  const d=deck[deckIdx]; deckOpen=false;
+  const nb=document.getElementById('deck-next-btn'); if(nb)nb.style.display='none';
+  document.getElementById('reveal-banner').classList.remove('show');
+  d.style.opacity='0'; d.style.transform='translateY(-95px) scale(.3) rotate(9deg)';
+  sfx('click');
+  deckIdx++;
+  await sleep(430);
+  d.style.display='none';
+  if(deckIdx>=revealCards.length){ finishDeck(); }
+  else { layoutDeck(); setDeckHint('Нажми на следующую карту'); }
+}
+
+function finishDeck(){
+  setDeckHint('');
+  document.getElementById('reveal-controls').style.display='none';
+  const t=document.getElementById('reveal-title'); if(t)t.textContent='\u2728 Все карты открыты!';
+  document.getElementById('reveal-done-btn').style.display='inline-block';
+}
+
+async function openAllCards(){
+  const btn=document.getElementById('open-all-btn'); if(btn)btn.disabled=true;
+  while(deckIdx<revealCards.length){
+    if(!deckOpen){ await openTop(); await sleep(620); }
+    await nextCard(); await sleep(160);
+  }
+  if(btn)btn.disabled=false;
+}
+
+async function epicMoment(d,p){
+  const flash=document.getElementById('reveal-flash'), banner=document.getElementById('reveal-banner');
+  flash.classList.add('flash'); setTimeout(()=>flash.classList.remove('flash'),500);
+  fxRing(p.x,p.y,'#B15CF0');
+  banner.textContent='ЭПИК!'; banner.className='reveal-banner show banner-epic';
+  await sleep(500);
+}
+async function legendaryMoment(d,p){
+  const ov=document.getElementById('reveal-overlay'), flash=document.getElementById('reveal-flash');
+  const banner=document.getElementById('reveal-banner'), col=document.getElementById('light-column');
+  flash.classList.add('flash'); setTimeout(()=>flash.classList.remove('flash'),500);
+  col.classList.add('on');
+  d.style.transform=`translateY(-8px) scale(${heroScale(true)})`;
+  ov.classList.add('quake'); setTimeout(()=>ov.classList.remove('quake'),560);
+  banner.textContent='\u2726 ЛЕГЕНДАРНЫЙ! \u2726'; banner.className='reveal-banner show banner-legendary';
+  fxRing(p.x,p.y,'#FFCE4A'); fxRing(p.x,p.y,'#FFFFFF');
+  for(let k=0;k<3;k++){ await sleep(230);
+    fxBurst(p.x,p.y,{count:60,speed:6.5,size:4.5,gravity:.14,confetti:true,colors:RARITY_FX.legendary.colors}); }
+  await sleep(520);
+  d.style.transform=`translateY(-8px) scale(${heroScale(false)})`;
+  col.classList.remove('on');
+  await sleep(260);
+}
+
+function initDeckDrag(){
+  let dragging=false,lx=0,ly=0;
+  const down=e=>{ if(!deckOpen)return; const t=e.target.closest&&e.target.closest('.dcard.opened'); if(!t)return;
+    dragging=true; const p=e.touches?e.touches[0]:e; lx=p.clientX; ly=p.clientY;
+    const inner=document.getElementById('dci-'+deckIdx); if(inner)inner.classList.add('dragging'); };
+  const move=e=>{ if(!dragging)return; const p=e.touches?e.touches[0]:e;
+    const dx=p.clientX-lx, dy=p.clientY-ly; lx=p.clientX; ly=p.clientY;
+    deckRot.ry+=dx*0.6; deckRot.rx=Math.max(-80,Math.min(80,deckRot.rx-dy*0.6)); applyDeckRot();
+    if(e.cancelable&&e.touches)e.preventDefault(); };
+  const up=()=>{ if(!dragging)return; dragging=false;
+    const inner=document.getElementById('dci-'+deckIdx); if(inner)inner.classList.remove('dragging'); };
+  window.addEventListener('mousedown',down); window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  window.addEventListener('touchstart',down,{passive:true}); window.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+}
+function initTear(){
+  const b=document.getElementById('open-booster'); if(!b)return;
+  let drag=false,x0=0,prog=0,dir=1,moved=0;
+  const down=e=>{ if(!tearArmed)return; drag=true; moved=0; prog=0; const p=e.touches?e.touches[0]:e; x0=p.clientX;
+    const lid=document.getElementById('booster-lid'); if(lid)lid.style.transition='none';
+    if(e.cancelable&&!e.touches)e.preventDefault(); };
+  const move=e=>{ if(!drag)return; const p=e.touches?e.touches[0]:e; const dx=p.clientX-x0;
+    moved=Math.max(moved,Math.abs(dx)); dir=dx<0?-1:1; prog=Math.min(1,Math.abs(dx)/130); applyTear(prog,dir);
+    if(e.cancelable&&e.touches)e.preventDefault(); };
+  const up=()=>{ if(!drag)return; drag=false; if(!tearArmed)return;
+    if(prog>=0.55||moved<8){ doTear(); }
+    else { const lid=document.getElementById('booster-lid'); if(lid)lid.style.transition='transform .3s, opacity .3s';
+      applyTear(0,dir); b.style.transform=''; b.classList.add('idle'); prog=0; } };
+  b.addEventListener('mousedown',down); window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  b.addEventListener('touchstart',down,{passive:true}); window.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+}
+function closeReveal(){
+  const o=document.getElementById('reveal-overlay'); o.classList.remove('open');
+  document.getElementById('reveal-burst').style.opacity='0';
+  document.getElementById('reveal-banner').className='reveal-banner';
+  document.getElementById('light-column').classList.remove('on');
+  FX.parts.length=0; if(FX.ctx)FX.ctx.clearRect(0,0,innerWidth,innerHeight);
+}
+
+let activeFilter='all';
+const collFilters={season:'all',sort:'rarity',q:'',missing:false};
+const RARITY_ORDER={legendary:0,epic:1,rare:2,common:3};
+function setById(id){ return (state.sets||[]).find(s=>s.id===id); }
+function isArchived(card){ const s=setById(card.setId); return !s || !s.active; }
+function filterCollection(r,btn){ activeFilter=r; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderCollection(); }
+function setCollQuery(v){ collFilters.q=(v||'').trim().toLowerCase(); renderCollection(); }
+function setCollSeason(v){ collFilters.season=v; renderCollection(); }
+function setCollSort(v){ collFilters.sort=v; renderCollection(); }
+function setCollMissing(v){ collFilters.missing=!!v; renderCollection(); }
+function matchColl(card){
+  if(activeFilter!=='all' && card.rarity!==activeFilter) return false;
+  if(collFilters.season!=='all' && card.setId!==collFilters.season) return false;
+  if(collFilters.q && !((card.name||'').toLowerCase().includes(collFilters.q) || (card.type||'').toLowerCase().includes(collFilters.q))) return false;
+  return true;
+}
+function sortColl(arr){
+  const s=collFilters.sort;
+  const byName=(a,b)=>(a.card.name||'').localeCompare(b.card.name||'','ru');
+  return arr.sort((a,b)=>{
+    if(s==='name') return byName(a,b);
+    if(s==='count') return (b.count-a.count) || byName(a,b);
+    if(s==='type') return (a.card.type||'').localeCompare(b.card.type||'','ru') || byName(a,b);
+    return (RARITY_ORDER[a.card.rarity]-RARITY_ORDER[b.card.rarity]) || byName(a,b);
+  });
+}
+function lockedCardHTML(c){
+  return `<div class="creature-card locked-card ${frame(c.rarity)}">
+    <div class="card-top"><div class="card-name">${c.name||'???'}</div></div>
+    <div class="card-art">?<span class="rarity-badge ${rb(c.rarity)}">${rLabel(c.rarity)}</span></div>
+    <div class="card-foot"><div class="card-type">${c.type||''}</div>
+      <div class="card-stats"><span class="stat">\u2694\uFE0F?</span><span class="stat">\u{1F6E1}?</span><span class="stat">\u26A1?</span></div>
+    </div></div>`;
+}
+function syncSeasonSelect(){
+  const sel=document.getElementById('coll-season'); if(!sel)return;
+  const prev=collFilters.season;
+  sel.innerHTML='<option value="all">Все сезоны</option>'+ (state.sets||[]).map(s=>`<option value="${s.id}">${s.name}${s.active?' \u2022 активный':' \u2022 архив'}</option>`).join('');
+  sel.value=(prev==='all'||state.sets.some(s=>s.id===prev))?prev:'all';
+  collFilters.season=sel.value;
+}
+function renderCollection(){
+  const grid=document.getElementById('collection-grid'); if(!grid)return;
+  syncSeasonSelect();
+  // собранные
+  const owned=groupedCollection().filter(g=>matchColl(g.card));
+  // прогресс считаем по банку с учётом сезона
+  const pool=state.cardBank.filter(c=>collFilters.season==='all'||c.setId===collFilters.season);
+  const ownedIds=new Set(state.collection.map(c=>c.id));
+  const uniq=pool.filter(c=>ownedIds.has(c.id)).length, total=pool.length;
+  const pct=total?Math.round(uniq/total*100):0;
+  const fill=document.getElementById('coll-fill'), lbl=document.getElementById('coll-lbl');
+  if(fill)fill.style.width=pct+'%';
+  if(lbl)lbl.textContent=`Собрано ${uniq} из ${total} существ (${pct}%)`;
+  const totalCopies=state.collection.filter(c=>matchColl(c)).length;
+  document.getElementById('collection-sub').textContent=`${owned.length} уникальных \u2022 ${totalCopies} карт всего`;
+  // несобранные (силуэты)
+  let entries=owned.map(g=>({card:g.card,count:g.count,owned:true}));
+  if(collFilters.missing){
+    state.cardBank.filter(c=>!ownedIds.has(c.id)&&matchColl(c)).forEach(c=>entries.push({card:c,count:0,owned:false}));
+  }
+  if(!entries.length){
+    grid.innerHTML=`<div class="empty-state"><div class="empty-icon">\u{1F31F}</div><div>${collFilters.q?'Ничего не найдено':'Тут пока пусто'}</div><div style="font-size:12px;margin-top:4px;font-weight:700">${collFilters.q?'Попробуй другой запрос':'Открой пак, чтобы поймать существ'}</div></div>`;
+    return;
+  }
+  entries=sortColl(entries);
+  grid.innerHTML=entries.map(e=> e.owned
+    ? makeCardHTML(e.card,{count:e.count,archive:isArchived(e.card),onclick:`openInspect('${e.card.id}')`})
+    : lockedCardHTML(e.card)
+  ).join('');
+}
+
+function renderProfile(){
+  const total=state.cardBank.length; const ownedIds=new Set(state.collection.map(c=>c.id)); const bankIds=new Set(state.cardBank.map(c=>c.id)); let uniq=0; ownedIds.forEach(id=>{ if(bankIds.has(id))uniq++; }); const pct=total?Math.round(uniq/total*100):0;
+  const legUniq=new Set(state.collection.filter(c=>c.rarity==='legendary').map(c=>c.id)).size;
+  // любимая стихия
+  const typeCount={}; state.collection.forEach(c=>{ typeCount[c.type]=(typeCount[c.type]||0)+1; });
+  let favType='—',favN=0; for(const t in typeCount){ if(typeCount[t]>favN){favN=typeCount[t];favType=t;} }
+  // лучшая карта
+  let best=null,bestScore=-1; state.collection.forEach(c=>{ const sc=(c.atk||0)+(c.def||0)+(c.spd||0); if(sc>bestScore){bestScore=sc;best=c;} });
+  const c=document.getElementById('profile-content');
+  c.innerHTML=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num">${state.wins||0}</div><div class="stat-lbl">\u{1F3C6} Побед в боях</div></div>
+      <div class="stat-card"><div class="stat-num">${state.collection.length}</div><div class="stat-lbl">\u{1F0CF} Карт всего</div></div>
+      <div class="stat-card"><div class="stat-num">${uniq} / ${total}</div><div class="stat-lbl">\u2728 Уникальных (${pct}%)</div></div>
+      <div class="stat-card"><div class="stat-num">${legUniq}</div><div class="stat-lbl">\u{1F451} Легендарок</div></div>
+      <div class="stat-card"><div class="stat-num" style="font-size:18px">${favType}</div><div class="stat-lbl">\u{1F525} Любимая стихия</div></div>
+      <div class="stat-card"><div class="stat-num">${state.packs}</div><div class="stat-lbl">\u{1F4E6} Паков в запасе</div></div>
+      <div class="stat-card"><div class="stat-num">\u{1FA99} ${state.coins||0}</div><div class="stat-lbl">\u{1F4B0} Монет</div></div>
+      ${best?`<div class="stat-card wide"><div class="big-emoji">${best.image?`<img src="${best.image}" style="width:42px;height:42px;border-radius:10px;object-fit:cover">`:(best.emoji||'\u2753')}</div><div><div style="font-family:'Russo One';font-size:15px;color:var(--c-ink)">${best.name}</div><div style="font-size:12px;color:var(--c-ink-soft);font-weight:600">Сильнейшая карта \u2022 ${best.type} \u2022 \u2694\uFE0F${best.atk} \u{1F6E1}${best.def} \u26A1${best.spd}</div></div></div>`:''}
+    </div>
+    <div class="panel" style="margin-top:14px"><h3>\u2699\uFE0F Настройки</h3>
+      <button class="btn btn-ghost" id="sound-toggle-btn" onclick="toggleSound()">${soundOn?'\u{1F50A}':'\u{1F507}'} Звук: ${soundOn?'включён':'выключен'}</button>
+    </div>`;
+}
+
+let builderImage = null;
+function compressImage(file,max=460,q=0.72){
+  return new Promise((res,rej)=>{ const reader=new FileReader();
+    reader.onload=e=>{ const img=new Image();
+      img.onload=()=>{ let w=img.width,h=img.height; if(w>h){if(w>max){h=Math.round(h*max/w);w=max;}}else{if(h>max){w=Math.round(w*max/h);h=max;}}
+        const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h); res(cv.toDataURL('image/jpeg',q)); };
+      img.onerror=rej; img.src=e.target.result; };
+    reader.onerror=rej; reader.readAsDataURL(file); });
+}
+async function onImagePicked(ev){ const file=ev.target.files[0]; if(!file)return; try{ builderImage=await compressImage(file); document.getElementById('dz-text').innerHTML='\u2705 Картинка<br>загружена'; document.getElementById('emoji-field').style.opacity='.45'; updatePreview(); }catch(e){ showToast('Не удалось загрузить картинку'); } }
+function currentBuilderCard(){ const setSel=document.getElementById('f-set'); return { name:document.getElementById('f-name').value.trim(), type:document.getElementById('f-type').value, rarity:document.getElementById('f-rarity').value, setId:(setSel&&setSel.value)||activeSetId(), emoji:document.getElementById('f-emoji').value.trim()||'\u2753', image:builderImage, atk:+document.getElementById('f-atk').value, def:+document.getElementById('f-def').value, spd:+document.getElementById('f-spd').value }; }
+function updatePreview(){ document.getElementById('v-atk').textContent=document.getElementById('f-atk').value; document.getElementById('v-def').textContent=document.getElementById('f-def').value; document.getElementById('v-spd').textContent=document.getElementById('f-spd').value; const c=currentBuilderCard(); document.getElementById('preview-card').innerHTML=makeCardHTML(c); }
+function addCard(){ const c=currentBuilderCard(); if(!c.name){ showToast('Впиши название'); return; } if(!c.image && (!c.emoji||c.emoji==='\u2753')){ showToast('Добавь картинку или эмодзи'); return; }
+  c.id='c'+Date.now()+Math.floor(Math.random()*999); state.cardBank.push(c); saveState();
+  showToast(`«${c.name}» добавлен в банк! \u{1F3B4}`);
+  document.getElementById('f-name').value=''; document.getElementById('f-emoji').value=''; builderImage=null; document.getElementById('dz-text').innerHTML='Нажми, чтобы<br>загрузить карту'; document.getElementById('emoji-field').style.opacity='1'; document.getElementById('img-input').value='';
+  updatePreview(); renderBank(); }
+function deleteCard(id){ state.cardBank=state.cardBank.filter(c=>c.id!==id); saveState(); renderBank(); }
+function renderBank(){ const grid=document.getElementById('bank-grid'); document.getElementById('bank-count').textContent=`(${state.cardBank.length})`;
+  if(!state.cardBank.length){ grid.innerHTML=`<div class="empty-state" style="padding:1.5rem"><div style="font-size:32px">\u{1F4ED}</div><div style="font-size:12px;margin-top:6px">Банк пуст — создай первую карточку выше</div></div>`; return; }
+  grid.innerHTML=state.cardBank.map(c=>makeCardHTML(c,{cls:'bank-card',del:true})).join(''); }
+
+function renderAdmin(){
+  const sel=document.getElementById('f-type'); if(sel && !sel.options.length){ sel.innerHTML=TYPES.map(t=>`<option value="${t}">${t}</option>`).join(''); }
+  const setSel=document.getElementById('f-set'); if(setSel){ const prev=setSel.value; setSel.innerHTML=state.sets.map(s=>`<option value="${s.id}">${s.name}${s.active?' \u2022 активный':''}</option>`).join(''); setSel.value=state.sets.some(s=>s.id===prev)?prev:activeSetId(); }
+  renderSets(); updatePreview(); renderBank();
+  document.getElementById('students-list').innerHTML=state.students.map(s=>`<div class="student-row"><div class="student-name">${s.name}</div><div class="student-packs">\u{1F4E6} ${s.packs}</div><button class="btn btn-ghost btn-mini" onclick="givePack(${s.id})">+1 пак</button><button class="btn btn-red btn-mini" onclick="removeStudent(${s.id})">\u2715</button></div>`).join('');
+}
+function renderSets(){
+  const el=document.getElementById('sets-list'); if(!el)return;
+  el.innerHTML=state.sets.map(s=>{ const cnt=state.cardBank.filter(c=>c.setId===s.id).length;
+    return `<div class="student-row"><div class="student-name">${s.active?'\u{1F7E2} ':'\u{1F4E6} '}${s.name} <span style="color:var(--c-ink-soft);font-weight:500">\u2022 ${cnt} карт${s.active?'':' \u2022 архив'}</span></div>${s.active?'<span style="font-family:Russo One;font-size:12px;color:var(--c-forest)">АКТИВНЫЙ</span>':`<button class="btn btn-ghost btn-mini" onclick="activateSet('${s.id}')">Сделать активным</button>`}${state.sets.length>1?`<button class="btn btn-red btn-mini" onclick="deleteSet('${s.id}')">\u2715</button>`:''}</div>`;
+  }).join('');
+}
+function addSet(){ const inp=document.getElementById('new-set-name'); const name=inp.value.trim(); if(!name)return; const id='set'+Date.now(); state.sets.forEach(s=>s.active=false); state.sets.push({id,name,active:true}); inp.value=''; saveState(); renderAdmin(); renderPackScreen(); showToast(`Сезон «${name}» создан и активен \u{1F7E2}`); }
+function activateSet(id){ state.sets.forEach(s=>s.active=(s.id===id)); saveState(); renderAdmin(); renderPackScreen(); const s=state.sets.find(x=>x.id===id); showToast(`Активный сезон: ${s.name}`); }
+function deleteSet(id){ const s=state.sets.find(x=>x.id===id); if(!s)return; const cnt=state.cardBank.filter(c=>c.setId===id).length; if(!confirm(`Удалить сезон «${s.name}»? Его ${cnt} карт останутся в коллекции у учеников, но из банка пропадут.`))return; state.cardBank=state.cardBank.filter(c=>c.setId!==id); state.sets=state.sets.filter(x=>x.id!==id); if(!state.sets.some(x=>x.active)&&state.sets.length)state.sets[0].active=true; saveState(); renderAdmin(); renderPackScreen(); }
+function addStudent(){ const inp=document.getElementById('new-student-name'); const name=inp.value.trim(); if(!name)return; state.students.push({id:Date.now(),name,packs:0}); inp.value=''; saveState(); renderAdmin(); showToast(`${name} добавлен(а)`); }
+function removeStudent(id){ state.students=state.students.filter(s=>s.id!==id); saveState(); renderAdmin(); }
+function givePack(id){ const s=state.students.find(x=>x.id===id); if(!s)return; s.packs++; state.packs++; saveState(); renderAdmin(); renderPackScreen(); showToast(`${s.name} получил(а) пак! \u{1F381}`); }
+
+async function generateCards(){
+  const btn=document.getElementById('gen-btn'),status=document.getElementById('gen-status');
+  let key=localStorage.getItem('anthropic-key');
+  if(!key){ key=prompt('Вставь свой Anthropic API-ключ (начинается с sk-ant-...).\nОн сохранится только в этом браузере.\nОставь пустым, чтобы отменить.'); if(!key||!key.trim()){return;} key=key.trim(); localStorage.setItem('anthropic-key',key); }
+  btn.disabled=true; status.textContent='\u23F3 Генерируем...';
+  try{
+    const response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`Придумай 6 выдуманных существ для школьной карточной игры. Верни ТОЛЬКО JSON массив без Markdown: {"name":"имя на русском","emoji":"1 эмодзи","type":"строго из: ${TYPES.join(', ')}","rarity":"common/rare/epic/legendary","atk":10-99,"def":10-99,"spd":10-99}. Распредели: 3 common, 2 rare, 1 epic.`}]})});
+    if(!response.ok){ const t=await response.text(); throw new Error(response.status+': '+t.slice(0,140)); }
+    const data=await response.json(); let text=data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim(); const creatures=JSON.parse(text);
+    creatures.forEach(c=>{ c.id='c'+Date.now()+Math.floor(Math.random()*999); c.setId=activeSetId(); state.cardBank.push(c); }); saveState(); status.textContent=`\u2705 Добавлено ${creatures.length}!`; renderBank();
+  }catch(e){ status.textContent='\u274C '+e.message; }
+  btn.disabled=false;
+}
+
+/* ═══════════ БОЙ: глубокая тактика ═══════════ */
+const STATUS_DEF={
+  burn  :{n:'Ожог',        i:'\u{1F525}', dot:6,  turns:3, bad:1},
+  poison:{n:'Яд',          i:'\u2620\uFE0F', dot:4, grow:2, turns:4, bad:1},
+  freeze:{n:'Заморозка',   i:'\u2744\uFE0F', skip:.35, turns:2, bad:1},
+  para  :{n:'Паралич',     i:'\u26A1', spd:-.4, turns:3, bad:1},
+  weak  :{n:'Ослабление',  i:'\u{1F311}', atk:-.3, turns:3, bad:1},
+  soak  :{n:'Промок',      i:'\u{1F4A7}', turns:3, bad:1},
+  shield:{n:'Щит',         i:'\u{1F6E1}\uFE0F', dr:.25, turns:3, bad:0},
+  regen :{n:'Регенерация', i:'\u2728', heal:8, turns:3, bad:0},
+  dodge :{n:'Уклонение',   i:'\u{1F32A}\uFE0F', dodge:.3, turns:2, bad:0}
+};
+const TYPE_STATUS={'Огненный':'burn','Ядовитый':'poison','Ледяной':'freeze','Электрический':'para','Тёмный':'weak','Водяной':'soak','Земляной':'shield','Световой':'regen','Воздушный':'dodge','Космический':null};
+const SELF_STATUS={shield:1,regen:1,dodge:1};
+const ARENAS=[
+  {n:'Вулкан',      i:'\u{1F30B}', boost:['Огненный'],                 d:'огненные бьют сильнее'},
+  {n:'Ливень',      i:'\u{1F327}\uFE0F', boost:['Водяной'],            d:'водяные бьют сильнее'},
+  {n:'Буря',        i:'\u{1F300}', boost:['Воздушный','Электрический'],d:'воздух и электро усилены'},
+  {n:'Затмение',    i:'\u{1F311}', boost:['Тёмный'],                   d:'тёмные бьют сильнее'},
+  {n:'Кристаллы',   i:'\u{1F48E}', boost:['Земляной','Ледяной'],       d:'земля и лёд усилены'},
+  {n:'Сияние',      i:'\u{1F31E}', boost:['Световой'],                 d:'световые бьют сильнее'},
+  {n:'Звездопад',   i:'\u2604\uFE0F', boost:['Космический'],           d:'космические усилены'},
+  {n:'Топи',        i:'\u{1F41B}', boost:['Ядовитый'],                 d:'ядовитые бьют сильнее'}
+];
+const MOVE_COST={quick:0,heavy:3,special:5};
+
+let pickedIds=[], battle=null, quickMode=false, battleTimer=null;
+
+/* ─── выбор команды ─── */
+function teamSize(){ return quickMode?3:5; }
+function toggleQuick(v){ quickMode=!!v; pickedIds=[]; renderBattleSelect(); }
+function renderBattleSelect(){
+  battle=null; if(battleTimer){clearInterval(battleTimer); battleTimer=null;}
+  const sub=document.getElementById('battle-sub'), content=document.getElementById('battle-content');
+  const groups=groupedCollection(); const need=teamSize();
+  if(groups.length<3){ sub.textContent='Нужно минимум 3 разных существа';
+    content.innerHTML=`<div class="empty-state"><div class="empty-icon">\u2694\uFE0F</div><div>Маловато бойцов</div><div style="font-size:12px;margin-top:4px;font-weight:700">Собери хотя бы 3 разных существа</div></div>`; return; }
+  if(groups.length<need){ quickMode=true; }
+  sub.textContent=`Собери команду из ${teamSize()} существ`;
+  content.innerHTML=`
+    <div class="battle-select-info">
+      <div class="select-count" id="select-count">Выбрано: 0 / ${teamSize()}</div>
+      <label class="coll-toggle" style="color:var(--c-forest);text-shadow:none"><input type="checkbox" id="quick-toggle" ${quickMode?'checked':''} ${groups.length<5?'disabled':''} onchange="toggleQuick(this.checked)"> Быстрый бой</label>
+      <button class="btn btn-primary" id="start-battle-btn" onclick="startBattle()" disabled style="padding:10px 20px;font-size:14px">В бой! \u2694\uFE0F</button>
+    </div>
+    <div class="cards-grid" id="pick-grid"></div>`;
+  renderPickGrid();
+}
+function renderPickGrid(){
+  document.getElementById('pick-grid').innerHTML=groupedCollection().map(g=>{
+    const picked=pickedIds.includes(g.card.id);
+    return makeCardHTML(g.card,{cls:'pickable'+(picked?' picked':''),check:true,count:g.count,onclick:`togglePick('${g.card.id}')`});
+  }).join('');
+}
+function togglePick(id){
+  const i=pickedIds.indexOf(id);
+  if(i>=0)pickedIds.splice(i,1);
+  else { if(pickedIds.length>=teamSize()){ showToast(`Можно выбрать только ${teamSize()}`); return; } pickedIds.push(id); }
+  document.getElementById('select-count').textContent=`Выбрано: ${pickedIds.length} / ${teamSize()}`;
+  document.getElementById('start-battle-btn').disabled=pickedIds.length!==teamSize();
+  renderPickGrid();
+}
+
+/* ─── бойцы и параметры ─── */
+function makeFighter(card){
+  const base=quickMode?45:60;
+  return {...card, maxHp:base+card.def, hp:base+card.def, statuses:{}, guard:false};
+}
+function hasSt(f,k){ return !!f.statuses[k]; }
+function effAtk(f){ let a=f.atk; if(hasSt(f,'weak'))a*=1+STATUS_DEF.weak.atk; return a; }
+function effSpd(f){ let s=f.spd; if(hasSt(f,'para'))s*=1+STATUS_DEF.para.spd; return s; }
+function addStatus(f,k){ if(!k||!STATUS_DEF[k])return null; const d=STATUS_DEF[k];
+  f.statuses[k]={turns:d.turns, stack:(f.statuses[k]?f.statuses[k].stack:0)+1}; return d; }
+function clearBad(f){ let n=0; Object.keys(f.statuses).forEach(k=>{ if(STATUS_DEF[k].bad){ delete f.statuses[k]; n++; } }); return n; }
+function statusIcons(f){ return (f.guard?'<span class="st-ico guard-on" title="В защите">\u{1F6E1}\uFE0F</span>':'')+Object.keys(f.statuses).map(k=>`<span class="st-ico" title="${STATUS_DEF[k].n}">${STATUS_DEF[k].i}</span>`).join(''); }
+function aliveIdxs(arr){ return arr.map((f,i)=>f.hp>0?i:-1).filter(i=>i>=0); }
+function aliveCount(arr){ return arr.filter(f=>f.hp>0).length; }
+function pAct(){ return battle.p[battle.pAct]; }
+function bAct(){ return battle.b[battle.bAct]; }
+function battleOver(){ return aliveCount(battle.p)===0||aliveCount(battle.b)===0; }
+function arenaMult(f){ return (battle.arena&&battle.arena.boost.includes(f.type))?1.25:1; }
+
+/* ─── старт ─── */
+function startBattle(){
+  const playerCards=pickedIds.map(id=>state.collection.find(c=>c.id===id));
+  const pool=state.cardBank.length?[...state.cardBank]:playerCards;
+  const botCards=[]; const n=teamSize();
+  const bag=[...pool];
+  for(let i=0;i<n;i++){ if(!bag.length)bag.push(...pool); botCards.push(bag.splice(Math.floor(Math.random()*bag.length),1)[0]); }
+  battle={ p:playerCards.map(makeFighter), b:botCards.map(makeFighter),
+    pAct:0,bAct:0, pEn:2,bEn:2, pItems:2,bItems:2,
+    round:1, arena:null, phase:'idle', pending:null, order:['p','b'], step:0,
+    over:false, log:['\u2694\uFE0F Бой начался!'], t0:Date.now() };
+  rollArena(true);
+  document.getElementById('battle-sub').textContent='Выбирай действие в свой ход';
+  renderBattleUI();
+  battleTimer=setInterval(updClock,1000);
+  startRound();
+}
+function rollArena(silent){
+  const a=ARENAS[Math.floor(Math.random()*ARENAS.length)];
+  battle.arena=a;
+  if(!silent){ battle.log.push(`${a.i} Арена сменилась: ${a.n} — ${a.d}`); sfx('click'); }
+}
+function updClock(){
+  const el=document.getElementById('battle-clock'); if(!el||!battle)return;
+  const s=Math.floor((Date.now()-battle.t0)/1000);
+  el.textContent=`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+/* ─── интерфейс ─── */
+function fighterBig(side){
+  const f=side==='p'?pAct():bAct();
+  const hpPct=Math.max(0,f.hp/f.maxHp*100);
+  const cls=hpPct<=30?'low':hpPct<=60?'mid':'';
+  const foe=side==='p'?bAct():pAct();
+  const m=typeMult(f.type,foe.type);
+  const hint=side==='p'?(m>1?'<span class="mu good">\u{1F525} сильно бьёт</span>':m<1?'<span class="mu bad">\u{1F6E1} слабо бьёт</span>':''):'';
+  return `<div class="big-fighter ${side==='b'?'foe':''}" id="big-${side}">
+    <div class="bf-art">${f.image?`<img src="${f.image}" alt="">`:(f.emoji||'\u2753')}</div>
+    <div class="bf-info">
+      <div class="bf-name">${f.name} ${arenaMult(f)>1?'<span class="mu good">\u2191</span>':''}</div>
+      <div class="bf-type">${f.type} ${hint}</div>
+      <div class="hp-track"><div class="hp-fill ${cls}" id="hp-${side}" style="width:${hpPct}%"></div></div>
+      <div class="bf-row"><span class="hp-text" id="hpt-${side}">${Math.max(0,f.hp)} / ${f.maxHp}</span><span class="st-row" id="st-${side}">${statusIcons(f)}</span></div>
+    </div></div>`;
+}
+function benchHTML(side){
+  const arr=side==='p'?battle.p:battle.b, act=side==='p'?battle.pAct:battle.bAct;
+  return arr.map((f,i)=>{
+    if(i===act) return '';
+    const dead=f.hp<=0, pct=Math.max(0,f.hp/f.maxHp*100);
+    const clickable=(side==='p'&&!dead&&(battle.phase==='switch'||battle.phase==='forceswitch'));
+    const targetable=(side==='b'&&!dead&&battle.phase==='target');
+    return `<div class="bench-chip ${dead?'dead':''} ${clickable?'switchable':''} ${targetable?'targetable':''}" ${clickable?`onclick="onSwitchPick(${i})"`:''} ${targetable?`onclick="onTargetPick(${i})"`:''}>
+      <div class="bc-art">${f.image?`<img src="${f.image}" alt="">`:(f.emoji||'\u2753')}</div>
+      <div class="bc-hp"><div class="bc-hp-fill" style="width:${pct}%"></div></div>
+      <div class="bc-st">${statusIcons(f)}</div></div>`;
+  }).join('');
+}
+function renderBattleUI(){
+  const a=battle.arena;
+  document.getElementById('battle-content').innerHTML=`
+    <div class="arena-banner"><span class="ab-left">${a.i} <b>${a.n}</b> \u2014 ${a.d}</span>
+      <span class="ab-right">Ход <b id="round-no">${battle.round}</b> \u2022 <span id="battle-clock">00:00</span> <button class="rules-hint-btn" onclick="openRules()">? правила</button></span></div>
+    <div class="arena">
+      <div class="side-label">\u{1F916} Бот \u2022 <span id="en-b-lbl">энергия 2</span></div>
+      <div class="bench" id="bench-b">${benchHTML('b')}</div>
+      <div id="act-b">${fighterBig('b')}</div>
+      <div class="battle-center"><div class="vs-badge" id="vs-badge">\u2694\uFE0F ТВОЙ ХОД</div>
+        <div class="dice-box" id="dice-box">\u{1F3B2}</div>
+        <div class="battle-msg" id="battle-msg">Выбери действие</div></div>
+      <div id="act-p">${fighterBig('p')}</div>
+      <div class="bench" id="bench-p">${benchHTML('p')}</div>
+      <div class="side-label">\u{1F60E} Ты \u2022 <span id="en-p-lbl">энергия 2</span></div>
+      <div class="energy-bar" id="energy-bar"></div>
+      <div class="action-bar six">
+        <button class="abtn" id="ab-quick"   onclick="actAttack('quick')">\u{1F44A}<span>Быстрый</span><i>0</i></button>
+        <button class="abtn" id="ab-heavy"   onclick="actAttack('heavy')">\u{1F4A5}<span>Тяжёлый</span><i>3</i></button>
+        <button class="abtn" id="ab-special" onclick="actAttack('special')">\u2728<span>Спец</span><i>5</i></button>
+        <button class="abtn" id="ab-guard"   onclick="actGuard()">\u{1F6E1}\uFE0F<span>Защита</span><i>+2</i></button>
+        <button class="abtn" id="ab-switch"  onclick="actSwitch()">\u{1F504}<span>Смена</span><i>ход</i></button>
+        <button class="abtn" id="ab-item"    onclick="actItem()">\u{1F9EA}<span>Аптечка</span><i id="item-n">\u00D72</i></button>
+      </div>
+      <div class="turn-hint" id="turn-hint"></div>
+      <div class="battle-log" id="battle-log"></div>
+    </div>`;
+  updEnergy(); renderLog(); updClock();
+}
+function updBig(side){ const el=document.getElementById('act-'+side); if(el)el.innerHTML=fighterBig(side); }
+function updHP(side){
+  const f=side==='p'?pAct():bAct();
+  const fill=document.getElementById('hp-'+side), txt=document.getElementById('hpt-'+side), st=document.getElementById('st-'+side);
+  if(!fill)return; const pct=Math.max(0,f.hp/f.maxHp*100);
+  fill.style.width=pct+'%'; fill.className='hp-fill '+(pct<=30?'low':pct<=60?'mid':'');
+  if(txt)txt.textContent=`${Math.max(0,f.hp)} / ${f.maxHp}`;
+  if(st)st.innerHTML=statusIcons(f);
+}
+function updBench(){ const b=document.getElementById('bench-b'), p=document.getElementById('bench-p');
+  if(b)b.innerHTML=benchHTML('b'); if(p)p.innerHTML=benchHTML('p'); }
+function updEnergy(){
+  const pl=document.getElementById('en-p-lbl'), bl=document.getElementById('en-b-lbl');
+  if(pl)pl.textContent='энергия '+battle.pEn; if(bl)bl.textContent='энергия '+battle.bEn;
+  const bar=document.getElementById('energy-bar');
+  if(bar){ let s=''; for(let i=1;i<=10;i++) s+=`<span class="en-pip ${i<=battle.pEn?'on':''}"></span>`; bar.innerHTML=s; }
+  const it=document.getElementById('item-n'); if(it)it.textContent='\u00D7'+battle.pItems;
+}
+function updButtons(on){
+  const set=(id,ok)=>{ const b=document.getElementById(id); if(b)b.disabled=!on||!ok; };
+  set('ab-quick',true); set('ab-heavy',battle.pEn>=MOVE_COST.heavy); set('ab-special',battle.pEn>=MOVE_COST.special);
+  set('ab-guard',true); set('ab-switch',aliveCount(battle.p)>1); set('ab-item',battle.pItems>0);
+}
+function clearArmed(){ ['ab-quick','ab-heavy','ab-special','ab-guard','ab-switch','ab-item'].forEach(id=>{ const b=document.getElementById(id); if(b)b.classList.remove('armed'); }); }
+function setMsg(t){ const m=document.getElementById('battle-msg'); if(m)m.innerHTML=t; }
+function setHint(t){ const h=document.getElementById('turn-hint'); if(h)h.textContent=t; }
+function setVs(t){ const v=document.getElementById('vs-badge'); if(v)v.textContent=t; }
+function renderLog(){ const l=document.getElementById('battle-log'); if(!l)return;
+  l.innerHTML=battle.log.slice(-40).map(x=>`<div class="log-line">${x}</div>`).join(''); l.scrollTop=l.scrollHeight; }
+
+async function rollDice(){ const box=document.getElementById('dice-box'); if(!box)return 3;
+  box.classList.add('rolling'); for(let i=0;i<7;i++){ box.textContent=DICE[1+Math.floor(Math.random()*6)]; await sleep(60); }
+  const r=1+Math.floor(Math.random()*6); box.textContent=DICE[r]; box.classList.remove('rolling'); return r; }
+
+/* ─── расчёт удара ─── */
+async function resolveAttack(side,kind,tIdx){
+  const att=side==='p'?pAct():bAct();
+  const dArr=side==='p'?battle.b:battle.p;
+  const dSide=side==='p'?'b':'p';
+  const idx=(tIdx==null)?(side==='p'?battle.bAct:battle.pAct):tIdx;
+  const def=dArr[idx];
+  const cost=MOVE_COST[kind];
+  if(side==='p')battle.pEn-=cost; else battle.bEn-=cost;
+  const kindName=kind==='quick'?'быстрый удар':kind==='heavy'?'тяжёлый удар':'спецприём';
+  setMsg(`${att.emoji||'\u2694\uFE0F'} <b>${att.name}</b> \u2014 ${kindName}...`);
+  await sleep(260);
+  // уклонение
+  if(hasSt(def,'dodge')&&Math.random()<STATUS_DEF.dodge.dodge){
+    setMsg(`<span class="super-txt">${def.name} уклонился!</span>`);
+    battle.log.push(`${side==='p'?'Ты':'Бот'}: ${att.name} \u2192 промах (уклонение ${def.name})`);
+    renderLog(); updEnergy(); await sleep(600); return;
+  }
+  const roll=await rollDice();
+  const diceM=roll===1?0.5:roll===6?2:1;
+  const kindM=kind==='quick'?1:kind==='heavy'?1.8:1.5;
+  let tM=typeMult(att.type,def.type);
+  if(kind==='special')tM=Math.max(tM,1.3);
+  if(hasSt(def,'soak')&&att.type==='Электрический')tM*=1.5;
+  let base=Math.max(1, effAtk(att)-Math.floor(def.def/2));
+  let dmg=base*kindM*tM*diceM*arenaMult(att);
+  if(def.guard)dmg*=0.5;
+  if(hasSt(def,'shield'))dmg*=(1-STATUS_DEF.shield.dr);
+  dmg=Math.max(1,Math.round(dmg));
+  def.hp-=dmg;
+  let tag='';
+  if(roll===6)tag+=' <span class="crit-txt">КРИТ \u00D72!</span>'; else if(roll===1)tag+=' <span class="weak-txt">слабо</span>';
+  if(tM>1)tag+=' <span class="super-txt">эффективно!</span>'; else if(tM<1)tag+=' <span class="weak-txt">не очень</span>';
+  if(arenaMult(att)>1)tag+=` <span class="super-txt">${battle.arena.i}</span>`;
+  setMsg(`<b>${att.name}</b> \u2192 ${dmg} урона!${tag}`); sfx(roll===6?'crit':'hit');
+  const bigEl=document.getElementById('big-'+dSide);
+  if(bigEl&&idx===(dSide==='p'?battle.pAct:battle.bAct)){ bigEl.classList.add('shake'); setTimeout(()=>bigEl.classList.remove('shake'),400); }
+  battle.log.push(`${side==='p'?'Ты':'Бот'}: ${att.name} (${kindName}) \u2192 ${def.name} \u2212${dmg}${roll===6?' \u{1F3B2}':''}${tM>1?' \u{1F525}':tM<1?' \u{1F6E1}':''}`);
+  // статус от спецприёма
+  if(kind==='special'){
+    const key=TYPE_STATUS[att.type]||['burn','poison','freeze','para','weak'][Math.floor(Math.random()*5)];
+    if(key){ const onSelf=!!SELF_STATUS[key]; const tgt=onSelf?att:def; const d=addStatus(tgt,key);
+      if(d){ battle.log.push(`${d.i} ${tgt.name}: ${d.n}`); } }
+  }
+  updHP(dSide); updBench(); updEnergy(); renderLog();
+  await sleep(520);
+  if(def.hp<=0){ sfx('faint'); battle.log.push(`\u{1F480} ${def.name} повержен!`); def.statuses={};
+    renderLog(); updBench(); await sleep(350); }
+}
+
+/* ─── ход и раунд ─── */
+function startRound(){
+  if(battleOver()){ endBattle(); return; }
+  battle.pEn=Math.min(10,battle.pEn+1); battle.bEn=Math.min(10,battle.bEn+1);
+  const rn=document.getElementById('round-no'); if(rn)rn.textContent=battle.round;
+  if(battle.round>1&&battle.round%5===1){ rollArena(false); renderBattleUI(); }
+  updEnergy();
+  const p=pAct(), b=bAct();
+  battle.order = effSpd(p)===effSpd(b) ? (Math.random()<.5?['p','b']:['b','p']) : (effSpd(p)>effSpd(b)?['p','b']:['b','p']);
+  battle.step=0; runStep();
+}
+async function runStep(){
+  if(battleOver()){ endBattle(); return; }
+  if(battle.step>=2){ await endOfRound(); return; }
+  const side=battle.order[battle.step];
+  // павший активный — принудительная замена
+  if(!(await ensureAlive(side))) { endBattle(); return; }
+  const f=side==='p'?pAct():bAct();
+  // заморозка
+  if(hasSt(f,'freeze')&&Math.random()<STATUS_DEF.freeze.skip){
+    setVs(side==='p'?'\u2744\uFE0F ТЫ ЗАМОРОЖЕН':'\u2744\uFE0F БОТ ЗАМОРОЖЕН');
+    setMsg(`\u2744\uFE0F <b>${f.name}</b> скован льдом и пропускает ход`);
+    battle.log.push(`\u2744\uFE0F ${f.name} пропускает ход`); renderLog();
+    updButtons(false); await sleep(900); afterTurn(); return;
+  }
+  if(side==='p'){ battle.phase='idle'; battle.pending=null; updBench();
+    setVs('\u2694\uFE0F ТВОЙ ХОД'); setMsg(`Ходит <b>${pAct().name}</b>`);
+    setHint('Энергия '+battle.pEn+' \u2022 выбирай действие'); updButtons(true); clearArmed(); }
+  else { battle.phase='idle'; updButtons(false); clearArmed(); setVs('\u{1F916} ХОД БОТА'); setHint(''); updBench();
+    await sleep(600); await botTurn(); afterTurn(); }
+}
+function afterTurn(){ if(battleOver()){ endBattle(); return; } battle.step++; runStep(); }
+
+async function endOfRound(){
+  // эффекты в конце хода
+  for(const side of ['p','b']){
+    const arr=side==='p'?battle.p:battle.b;
+    for(const f of arr){
+      if(f.hp<=0)continue;
+      for(const k of Object.keys(f.statuses)){
+        const d=STATUS_DEF[k], st=f.statuses[k];
+        if(d.dot){ const dmg=d.dot+((d.grow||0)*(d.turns-st.turns)); f.hp-=dmg;
+          battle.log.push(`${d.i} ${f.name} теряет ${dmg} HP (${d.n})`); }
+        if(d.heal){ const h=Math.min(d.heal,f.maxHp-f.hp); if(h>0){ f.hp+=h; battle.log.push(`${d.i} ${f.name} восстановил ${h} HP`); } }
+        st.turns--; if(st.turns<=0){ delete f.statuses[k]; battle.log.push(`${f.name}: ${d.n} прошёл`); }
+      }
+      if(f.hp<=0){ battle.log.push(`\u{1F480} ${f.name} повержен!`); f.statuses={}; sfx('faint'); }
+    }
+  }
+  battle.p.forEach(f=>f.guard=false); battle.b.forEach(f=>f.guard=false);
+  updHP('p'); updHP('b'); updBench(); renderLog();
+  await sleep(700);
+  if(battleOver()){ endBattle(); return; }
+  battle.round++; startRound();
+}
+async function ensureAlive(side){
+  const arr=side==='p'?battle.p:battle.b;
+  const cur=side==='p'?battle.pAct:battle.bAct;
+  if(arr[cur]&&arr[cur].hp>0)return true;
+  const al=aliveIdxs(arr); if(!al.length)return false;
+  if(side==='b'){ battle.bAct=al[Math.floor(Math.random()*al.length)];
+    battle.log.push(`\u{1F504} Бот выводит ${bAct().name}`); updBig('b'); updBench(); renderLog(); await sleep(600); return true; }
+  // игрок выбирает сам
+  battle.phase='forceswitch'; updButtons(false); updBench();
+  setVs('\u{1F504} ЗАМЕНА'); setMsg('Твой боец пал \u2014 выбери следующего');
+  setHint('Нажми на бойца внизу');
+  await new Promise(res=>{ battle._resolveSwitch=res; });
+  return true;
+}
+
+/* ─── действия игрока ─── */
+function actAttack(kind){
+  if(battle.phase==='forceswitch'||battle.over)return;
+  if(battle.pEn<MOVE_COST[kind]){ showToast('Не хватает энергии'); return; }
+  battle.pending=kind;
+  if(kind==='special'){ battle.phase='target'; clearArmed();
+    const b=document.getElementById('ab-special'); if(b)b.classList.add('armed');
+    setHint('\u{1F3AF} Спецприём бьёт любого \u2014 выбери цель'); updBench(); return; }
+  doPlayerAttack(kind,null);
+}
+async function doPlayerAttack(kind,idx){
+  battle.phase='busy'; updButtons(false); clearArmed(); setHint(''); updBench();
+  await resolveAttack('p',kind,idx);
+  afterTurn();
+}
+function onTargetPick(i){ if(battle.phase!=='target')return; doPlayerAttack(battle.pending||'special',i); }
+function actSwitch(){
+  if(battle.phase==='forceswitch'||battle.over)return;
+  if(aliveCount(battle.p)<2){ showToast('Некем заменить'); return; }
+  battle.phase='switch'; clearArmed(); const b=document.getElementById('ab-switch'); if(b)b.classList.add('armed');
+  setHint('\u{1F504} Выбери, кто выйдет на замену'); updBench();
+}
+async function onSwitchPick(i){
+  if(battle.phase!=='switch'&&battle.phase!=='forceswitch')return;
+  const forced=battle.phase==='forceswitch';
+  battle.phase='busy'; battle.pAct=i; clearArmed(); updButtons(false);
+  const f=pAct(); sfx('click'); battle.log.push(`\u{1F504} Ты выводишь ${f.name}`);
+  setMsg(`\u{1F504} В бой выходит <b>${f.name}</b>`); setHint('');
+  updBig('p'); updBench(); renderLog(); await sleep(650);
+  if(forced){ const r=battle._resolveSwitch; battle._resolveSwitch=null; if(r)r(); }
+  else afterTurn();
+}
+async function actGuard(){
+  if(battle.phase==='forceswitch'||battle.over)return;
+  battle.phase='busy'; updButtons(false); clearArmed();
+  const f=pAct(); f.guard=true; battle.pEn=Math.min(10,battle.pEn+2);
+  let cleansed=0;
+  Object.keys(f.statuses).forEach(k=>{ if(STATUS_DEF[k].bad){ f.statuses[k].turns--; cleansed++;
+    if(f.statuses[k].turns<=0)delete f.statuses[k]; } });
+  sfx('click'); battle.log.push(`\u{1F6E1}\uFE0F ${f.name} в защите: +2 энергии${cleansed?', эффекты слабеют':''}`);
+  setMsg(`\u{1F6E1}\uFE0F <b>${f.name}</b> в защите \u2014 весь урон вдвое меньше, +2 энергии`); setHint('');
+  updHP('p'); updEnergy(); renderLog(); await sleep(750); afterTurn();
+}
+async function actItem(){
+  if(battle.phase==='forceswitch'||battle.over)return;
+  if(battle.pItems<=0){ showToast('Аптечки кончились'); return; }
+  battle.phase='busy'; updButtons(false); clearArmed();
+  battle.pItems--; const f=pAct();
+  const bad=Object.keys(f.statuses).filter(k=>STATUS_DEF[k].bad).length;
+  if(bad){ clearBad(f); battle.log.push(`\u{1F9EA} ${f.name}: все негативные эффекты сняты`); setMsg(`\u{1F9EA} <b>${f.name}</b> очищен от эффектов`); }
+  else { const h=Math.min(Math.round(f.maxHp*0.3), f.maxHp-f.hp); f.hp+=h;
+    battle.log.push(`\u{1F9EA} ${f.name} восстановил ${h} HP`); setMsg(`\u{1F9EA} <b>${f.name}</b> +${h} HP`); }
+  sfx('click'); updHP('p'); updBench(); updEnergy(); renderLog(); setHint(''); await sleep(750); afterTurn();
+}
+
+/* ─── бот ─── */
+async function botTurn(){
+  if(battleOver())return;
+  const me=bAct(), foe=pAct();
+  const opts=[];
+  const badCount=Object.keys(me.statuses).filter(k=>STATUS_DEF[k].bad).length;
+  if(battle.bEn>=MOVE_COST.special) opts.push({a:'special',w:5});
+  if(battle.bEn>=MOVE_COST.heavy) opts.push({a:'heavy',w:4});
+  opts.push({a:'quick',w:3});
+  opts.push({a:'guard',w:battle.bEn<3?3:1});
+  if(battle.bItems>0&&(me.hp<me.maxHp*0.35||badCount>=2)) opts.push({a:'item',w:6});
+  if(aliveCount(battle.b)>1&&typeMult(foe.type,me.type)>1) opts.push({a:'switch',w:4});
+  const total=opts.reduce((s,o)=>s+o.w,0); let r=Math.random()*total, pick=opts[0];
+  for(const o of opts){ r-=o.w; if(r<=0){ pick=o; break; } }
+  if(pick.a==='guard'){ me.guard=true; battle.bEn=Math.min(10,battle.bEn+2);
+    Object.keys(me.statuses).forEach(k=>{ if(STATUS_DEF[k].bad){ me.statuses[k].turns--; if(me.statuses[k].turns<=0)delete me.statuses[k]; } });
+    battle.log.push(`\u{1F6E1}\uFE0F Бот: ${me.name} в защите (+2 энергии)`); setMsg(`\u{1F6E1}\uFE0F ${me.name} (бот) в защите`);
+    updEnergy(); renderLog(); await sleep(700); return; }
+  if(pick.a==='item'){ battle.bItems--;
+    if(badCount){ clearBad(me); battle.log.push(`\u{1F9EA} Бот снял эффекты с ${me.name}`); }
+    else { const h=Math.min(Math.round(me.maxHp*0.3),me.maxHp-me.hp); me.hp+=h; battle.log.push(`\u{1F9EA} Бот вылечил ${me.name} на ${h}`); }
+    setMsg(`\u{1F9EA} Бот использовал аптечку`); updHP('b'); updBench(); renderLog(); await sleep(700); return; }
+  if(pick.a==='switch'){ const al=aliveIdxs(battle.b).filter(i=>i!==battle.bAct);
+    battle.bAct=al[Math.floor(Math.random()*al.length)];
+    battle.log.push(`\u{1F504} Бот выводит ${bAct().name}`); setMsg(`\u{1F504} Бот меняет бойца`);
+    updBig('b'); updBench(); renderLog(); await sleep(700); return; }
+  // спец бота может бить и по скамейке
+  let tIdx=null;
+  if(pick.a==='special'&&Math.random()<0.35){ const al=aliveIdxs(battle.p); tIdx=al[Math.floor(Math.random()*al.length)]; }
+  await resolveAttack('b',pick.a,tIdx);
+}
+
+/* ─── финал ─── */
+async function endBattle(){
+  if(battle.over)return; battle.over=true;
+  if(battleTimer){ clearInterval(battleTimer); battleTimer=null; }
+  const won=aliveCount(battle.b)===0; sfx(won?'win':'lose');
+  if(won){ state.wins=(state.wins||0)+1; state.coins=(state.coins||0)+WIN_REWARD; saveState(); }
+  const secs=Math.floor((Date.now()-battle.t0)/1000);
+  const mm=String(Math.floor(secs/60)).padStart(2,'0'), ss=String(secs%60).padStart(2,'0');
+  document.getElementById('battle-content').innerHTML=`
+    <div class="result-banner" id="result-shown">
+      <div style="font-size:64px;margin-bottom:8px">${won?'\u{1F3C6}':'\u{1F494}'}</div>
+      <div class="result-title ${won?'result-win':'result-lose'}">${won?'ПОБЕДА!':'Поражение'}</div>
+      <div class="page-sub" style="margin-bottom:8px">${won?'Твоя тактика сработала!':'Попробуй другой состав или тактику.'}</div>
+      <div class="page-sub" style="margin-bottom:20px">Ходов: ${battle.round} \u2022 Время боя: ${mm}:${ss}${won?` \u2022 <b style="color:var(--c-lime)">+${WIN_REWARD} \u{1FA99}</b>`:''}</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="renderBattleSelect()">Новый бой \u2694\uFE0F</button>
+        <button class="btn btn-ghost" onclick="showScreen('collection', document.querySelector('[data-s=collection]'))">В коллекцию</button>
+      </div>
+      <div style="margin-top:16px;font-size:13px;color:#CFE6BE;font-weight:900">Всего побед: ${state.wins||0} \u{1F3C6}</div>
+    </div>`;
+}
+
+/* ─── ЛАВКА ─── */
+const SELL_PRICE={common:5,rare:12,epic:30,legendary:75};
+const PACK_PRICE=100, WIN_REWARD=15;
+function sellPrice(c){ return SELL_PRICE[c.rarity]||5; }
+function buyPack(){
+  if(state.coins<PACK_PRICE){ showToast('Не хватает монет'); return; }
+  state.coins-=PACK_PRICE; state.packs++; saveState(); sfx('rare');
+  showToast('Пак куплен! Открой его во вкладке «Паки» \u{1F4E6}'); renderShop(); renderPackScreen();
+}
+function sellCard(id){
+  const copies=state.collection.filter(c=>c.id===id);
+  if(copies.length<2){ showToast('Последний экземпляр продать нельзя'); return; }
+  const card=copies[0], price=sellPrice(card);
+  const idx=state.collection.map(c=>c.id).lastIndexOf(id);
+  state.collection.splice(idx,1);
+  state.coins+=price; saveState(); sfx('click');
+  showToast(`«${card.name}» продан за ${price} \u{1FA99}`); renderShop();
+}
+function renderShop(){
+  const cc=document.getElementById('coin-count'); if(cc)cc.textContent=state.coins;
+  const dups=groupedCollection().filter(g=>g.count>1);
+  const sellHTML=dups.map(g=>`<div class="sell-item">${makeCardHTML(g.card,{count:g.count})}
+      <button class="sell-btn" onclick="sellCard('${g.card.id}')">Продать \u{1FA99} ${sellPrice(g.card)}</button></div>`).join('');
+  document.getElementById('shop-content').innerHTML=`
+    <div class="panel"><h3>\u{1F4B0} Сдать дубликаты</h3>
+      <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-bottom:12px">Скупщик берёт только повторки и платит немного \u2014 последний экземпляр всегда остаётся в коллекции.</div>
+      ${sellHTML?`<div class="shop-offers">${sellHTML}</div>`:'<div class="empty-state" style="padding:1.5rem;color:var(--c-ink-soft)">Повторок пока нет \u2014 открывай паки</div>'}
+    </div>
+    <div class="panel"><h3>\u{1F4E6} Купить пак</h3>
+      <div class="shop-row"><div class="grow" style="font-size:13px;font-weight:700;color:var(--c-ink-soft)">Пак из 5 случайных существ активного сезона.</div>
+        <span class="price-tag">\u{1FA99} ${PACK_PRICE}</span>
+        <button class="btn btn-primary" style="padding:11px 20px;font-size:14px" ${state.coins>=PACK_PRICE?'':'disabled'} onclick="buyPack()">Купить</button></div>
+    </div>
+    <div class="panel"><h3>\u{1F4CB} Сколько платит скупщик</h3>
+      <div class="rate-grid">
+        ${Object.keys(SELL_PRICE).map(r=>`<div class="rate-cell"><div class="rn">${rLabel(r)}</div><div class="rv">\u{1FA99} ${SELL_PRICE[r]}</div></div>`).join('')}
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-top:10px">За победу в бою дают \u{1FA99} ${WIN_REWARD}. Цены низкие специально: скоро появится торговая площадка, где обмен с одноклассниками будет куда выгоднее \u2014 копи монеты.</div>
+    </div>`;
+}
+
+/* ─── правила боя (строятся из данных движка) ─── */
+const STATUS_TEXT={
+  burn:'Теряет 6 HP в конце каждого хода',
+  poison:'Теряет 4 HP, и с каждым ходом всё больше',
+  freeze:'35% шанс пропустить ход',
+  para:'Скорость −40% — чаще ходит вторым',
+  weak:'Атака −30%',
+  soak:'Электрические удары по нему в 1,5 раза сильнее',
+  shield:'Весь входящий урон −25%',
+  regen:'Восстанавливает 8 HP в конце хода',
+  dodge:'30% шанс полностью увернуться от удара'
+};
+const MOVE_TEXT=[
+  {i:'\u{1F44A}',n:'Быстрый удар',c:'0 энергии',d:'Обычный урон. Всегда доступен.'},
+  {i:'\u{1F4A5}',n:'Тяжёлый удар',c:'3 энергии',d:'Урон в 1,8 раза больше обычного.'},
+  {i:'\u2728',n:'Спецприём',c:'5 энергии',d:'Урон ×1,5, вешает эффект стихии и достаёт даже до скамейки.'},
+  {i:'\u{1F6E1}\uFE0F',n:'Защита',c:'+2 энергии',d:'Весь урон по тебе до конца раунда вдвое меньше, негативные эффекты слабеют.'},
+  {i:'\u{1F504}',n:'Смена',c:'стоит ход',d:'Выводишь другого бойца — поймать выгодную стихию или спасти раненого.'},
+  {i:'\u{1F9EA}',n:'Аптечка',c:'2 за бой',d:'Снимает все негативные эффекты, а если их нет — лечит на 30%.'}
+];
+function buildRules(){
+  const types=Object.keys(STRONG);
+  const typeRows=types.map(t=>`<div class="r-type"><b>${t}</b> \u2192 ${STRONG[t].join(', ')}</div>`).join('');
+  const stRows=Object.keys(STATUS_DEF).map(k=>{ const d=STATUS_DEF[k];
+    return `<div class="r-row"><div class="r-ico">${d.i}</div><div class="r-txt">
+      <div class="r-name">${d.n}${d.bad?'':' <span style="color:#2E8250">(на себя)</span>'}</div>
+      <div class="r-desc">${STATUS_TEXT[k]||''} \u2022 держится ${d.turns} хода</div></div></div>`; }).join('');
+  const moveRows=MOVE_TEXT.map(m=>`<div class="r-row"><div class="r-ico">${m.i}</div>
+    <div class="r-txt"><div class="r-name">${m.n}</div><div class="r-desc">${m.d}</div></div>
+    <div class="r-cost">${m.c}</div></div>`).join('');
+  const arenaRows=ARENAS.map(a=>`<div class="r-type">${a.i} <b>${a.n}</b> \u2014 ${a.d}</div>`).join('');
+  return `
+    <div class="r-sec"><h4>\u{1F3AF} Цель</h4>
+      <p>Победить, когда у соперника падут все существа. В бою участвует один боец, остальные ждут на скамейке — их можно вводить заменой.</p></div>
+    <div class="r-sec"><h4>\u26A1 Энергия</h4>
+      <p>В начале боя её 2, и каждый ход прибавляется ещё 1 (максимум 10). Сильные приёмы стоят энергии, поэтому иногда выгоднее подождать, чем бить сразу.</p></div>
+    <div class="r-sec"><h4>\u2694\uFE0F Что можно сделать в свой ход</h4>${moveRows}</div>
+    <div class="r-sec"><h4>\u{1F3B2} Кубик решает удачу</h4>
+      <div class="r-dice">
+        <div class="r-die"><div class="f">\u2680</div><div class="t">1 \u2014 слабый удар<br>урон \u00D70,5</div></div>
+        <div class="r-die"><div class="f">\u2681\u2682\u2683\u2684</div><div class="t">2\u20135 \u2014 обычный<br>урон \u00D71</div></div>
+        <div class="r-die"><div class="f">\u2685</div><div class="t">6 \u2014 КРИТ!<br>урон \u00D72</div></div>
+      </div></div>
+    <div class="r-sec"><h4>\u{1F300} Эффекты от спецприёмов</h4>${stRows}</div>
+    <div class="r-sec"><h4>\u{1F525} Стихии: кто кого бьёт сильнее</h4>
+      <p style="margin-bottom:8px">По своей жертве урон \u00D71,3, по тому, кто силён против тебя, \u2014 \u00D70,7.</p>
+      <div class="r-type-row">${typeRows}</div></div>
+    <div class="r-sec"><h4>\u{1F30B} Арена</h4>
+      <p style="margin-bottom:8px">Каждые 5 ходов поле меняется и даёт своим стихиям +25% урона.</p>
+      <div class="r-type-row">${arenaRows}</div></div>
+    <div class="r-sec"><h4>\u{1F4A1} Совет новичку</h4>
+      <p>Не бей вслепую: посмотри на подсказку под именем бойца \u2014 \u{1F525} значит, что ты бьёшь эту цель сильно, а \u{1F6E1} что слабо. Если матчап плохой, лучше сменить бойца или встать в защиту и накопить на спецприём.</p></div>`;
+}
+function openRules(){ const b=document.getElementById('rules-body'); if(b&&!b.innerHTML)b.innerHTML=buildRules();
+  document.getElementById('rules-overlay').classList.add('open'); sfx('click'); }
+function closeRules(){ document.getElementById('rules-overlay').classList.remove('open'); }
+
+/* ─── 3D осмотр карты ─── */
+let inspectState={drag:false,rx:0,ry:0};
+function applyInspect(){ const c=document.getElementById('inspect-card'); if(!c)return; c.style.transform=`rotateX(${inspectState.rx}deg) rotateY(${inspectState.ry}deg)`; const g=document.getElementById('inspect-gloss'); if(g){ const gx=50+inspectState.ry*0.55, gy=50-inspectState.rx*0.55; g.style.backgroundPosition=`${gx}% ${gy}%`; } }
+function openInspect(id){ const card=state.cardBank.find(c=>c.id===id)||state.collection.find(c=>c.id===id); if(!card)return; const front=document.getElementById('ic-front'); front.innerHTML=card.image?`<img src="${card.image}" alt="">`:makeCardHTML(card); inspectState={drag:false,rx:0,ry:0}; applyInspect(); document.getElementById('inspect-overlay').classList.add('open'); sfx('click'); }
+function closeInspect(){ document.getElementById('inspect-overlay').classList.remove('open'); }
+function initInspect(){
+  const card=document.getElementById('inspect-card'); const overlay=document.getElementById('inspect-overlay'); if(!card)return;
+  let lastX=0,lastY=0;
+  const down=e=>{ inspectState.drag=true; card.classList.add('dragging'); const p=e.touches?e.touches[0]:e; lastX=p.clientX; lastY=p.clientY; };
+  const move=e=>{ if(!inspectState.drag)return; const p=e.touches?e.touches[0]:e; const dx=p.clientX-lastX, dy=p.clientY-lastY; lastX=p.clientX; lastY=p.clientY; inspectState.ry+=dx*0.6; inspectState.rx=Math.max(-85,Math.min(85,inspectState.rx-dy*0.6)); applyInspect(); if(e.cancelable&&e.touches)e.preventDefault(); };
+  const up=()=>{ inspectState.drag=false; card.classList.remove('dragging'); };
+  card.addEventListener('mousedown',down); window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+  card.addEventListener('touchstart',down,{passive:true}); window.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+  overlay.addEventListener('click',e=>{ if(e.target===overlay)closeInspect(); });
+  const ro=document.getElementById('rules-overlay');
+  if(ro)ro.addEventListener('click',e=>{ if(e.target===ro)closeRules(); });
+}
+
+loadState(); renderPackScreen();
+[initInspect,fxInit,initTear,initDeckDrag].forEach(f=>{ try{ f(); }catch(err){ console.error("init:",err); } });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  .auth-overlay{ position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center; padding:18px;
+    background:radial-gradient(ellipse at 50% 0%, rgba(46,130,80,.55), rgba(6,40,23,.97) 60%), linear-gradient(175deg,#1C6A42,#0C3A21); }
+  .auth-overlay.hidden{ display:none; }
+  .auth-box{ width:min(94vw,392px); border-radius:22px; overflow:hidden;
+    background:linear-gradient(180deg,#FFFFFF,#F3FBE7); border:3px solid #14532F;
+    box-shadow:0 8px 0 rgba(5,35,20,.6), 0 22px 46px rgba(0,0,0,.6); }
+  .auth-head{ padding:20px 20px 16px; text-align:center; background:linear-gradient(180deg,#2E8250,#14532F); border-bottom:3px solid #052314; }
+  .auth-logo{ font-family:'Russo One',sans-serif; font-size:24px; color:#fff; text-shadow:0 2px 0 #14532F, 0 0 18px rgba(201,231,162,.5); }
+  .auth-sub{ font-size:12px; font-weight:800; color:#CFE6BE; margin-top:5px; }
+  .auth-body{ padding:18px 20px 20px; }
+  .auth-tabs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+  .auth-tab{ font-family:'Nunito'; font-weight:900; font-size:13px; cursor:pointer; padding:9px 6px; border-radius:11px;
+    color:#4E6E58; background:#FBFEF6; border:2.5px solid rgba(34,110,67,.3); }
+  .auth-tab.on{ background:linear-gradient(180deg,#C9E7A2,#7FC264); color:#14532F; border-color:#052314; box-shadow:0 3px 0 #052314; }
+  .auth-field{ margin-bottom:12px; }
+  .auth-field label{ display:block; font-size:11px; font-weight:900; color:#4E6E58; margin-bottom:5px; text-transform:uppercase; letter-spacing:.04em; }
+  .auth-field input{ width:100%; font-family:'Nunito'; font-weight:700; font-size:14px; padding:11px 13px; color:#123A24;
+    background:#FBFEF6; border:2.5px solid rgba(34,110,67,.35); border-radius:12px; }
+  .auth-field input:focus{ outline:none; border-color:#7FC264; box-shadow:0 0 0 3px rgba(127,194,100,.3); }
+  .auth-msg{ font-size:12px; font-weight:800; margin-bottom:12px; min-height:16px; color:#C2352F; }
+  .auth-msg.ok{ color:#2E8250; }
+  .auth-hint{ font-size:11px; font-weight:700; color:#4E6E58; margin-top:12px; line-height:1.5; text-align:center; }
+  .auth-busy{ opacity:.6; pointer-events:none; }
+  .who-pill{ display:inline-flex; align-items:center; gap:7px; padding:6px 14px; border-radius:99px; font-size:12px; font-weight:900;
+    color:#EAF7DA; background:rgba(5,35,20,.45); border:2px solid rgba(201,231,162,.35); }
+</style>
+
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-box" id="auth-box">
+    <div class="auth-head">
+      <div class="auth-logo">&#10022; AcadeCards</div>
+      <div class="auth-sub">Школьная карточная игра</div>
+    </div>
+    <div class="auth-body">
+      <div class="auth-tabs">
+        <button class="auth-tab on" id="tab-login" onclick="authMode('login')">Вход</button>
+        <button class="auth-tab" id="tab-reg" onclick="authMode('reg')">Регистрация</button>
+      </div>
+      <div class="auth-field"><label>Логин</label>
+        <input id="auth-login" autocomplete="username" placeholder="например, ivan2010"></div>
+      <div class="auth-field"><label>Пароль</label>
+        <input id="auth-pass" type="password" autocomplete="current-password" placeholder="минимум 6 символов"></div>
+      <div class="auth-msg" id="auth-msg"></div>
+      <button class="btn btn-primary" style="width:100%" id="auth-go" onclick="authSubmit()">Войти</button>
+      <div class="auth-hint" id="auth-hint">Придумай логин и пароль — почта не нужна</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://ayejukeaneyrljnwvdpf.supabase.co';
+const SB_KEY = 'sb_publishable_rH4IZbU2O0Vv_-worozwaw_rYTnsJv_';
+const LOGIN_DOMAIN = '@acadecards.local';
+let sb = null, SB_READY = false;
+try{
+  if(window.supabase && window.supabase.createClient){
+    sb = window.supabase.createClient(SB_URL, SB_KEY); SB_READY = true;
+  }
+}catch(e){ console.error('Supabase:', e); }
+let authBusy = false, currentMode = 'login';
+
+function authMode(m){
+  currentMode = m;
+  document.getElementById('tab-login').classList.toggle('on', m==='login');
+  document.getElementById('tab-reg').classList.toggle('on', m==='reg');
+  document.getElementById('auth-go').textContent = m==='login' ? 'Войти' : 'Создать аккаунт';
+  document.getElementById('auth-hint').textContent = m==='login'
+    ? 'Введи логин и пароль, которые придумал при регистрации'
+    : 'Придумай логин и пароль — почта не нужна. Запомни их!';
+  authMsg('');
+}
+function authMsg(t, ok){
+  const el=document.getElementById('auth-msg');
+  el.textContent=t||''; el.classList.toggle('ok', !!ok);
+}
+function loginToEmail(l){ return l.trim().toLowerCase().replace(/[^a-z0-9_.-]/g,'') + LOGIN_DOMAIN; }
+
+async function authSubmit(){
+  if(authBusy) return;
+  const login=document.getElementById('auth-login').value.trim();
+  const pass=document.getElementById('auth-pass').value;
+  if(login.length<3){ authMsg('Логин — минимум 3 символа'); return; }
+  if(!/[a-zA-Z]/.test(login)){ authMsg('В логине нужны латинские буквы'); return; }
+  if(pass.length<6){ authMsg('Пароль — минимум 6 символов'); return; }
+  authBusy=true; document.getElementById('auth-box').classList.add('auth-busy');
+  authMsg(currentMode==='login'?'Входим...':'Создаём аккаунт...', true);
+  try{
+    const email=loginToEmail(login);
+    let res;
+    if(currentMode==='reg'){
+      res = await sb.auth.signUp({ email, password:pass, options:{ data:{ login: login.toLowerCase() } } });
+      if(!res.error && !res.data.session){
+        res = await sb.auth.signInWithPassword({ email, password:pass });
+      }
+    } else {
+      res = await sb.auth.signInWithPassword({ email, password:pass });
+    }
+    if(res.error) throw res.error;
+    authMsg('Готово!', true);
+    await enterApp();
+  }catch(e){
+    const m=(e && e.message)||'Ошибка';
+    if(/already registered/i.test(m)) authMsg('Такой логин уже занят');
+    else if(/Invalid login credentials/i.test(m)) authMsg('Неверный логин или пароль');
+    else if(/at least 6/i.test(m)) authMsg('Пароль — минимум 6 символов');
+    else authMsg(m);
+  }
+  authBusy=false; document.getElementById('auth-box').classList.remove('auth-busy');
+}
+
+async function doLogout(){
+  await sb.auth.signOut();
+  location.reload();
+}
+
+/* ─── загрузка данных с сервера ─── */
+async function loadFromServer(){
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user) return false;
+  const [prof, sets, cards, coll] = await Promise.all([
+    sb.from('profiles').select('*').eq('id', user.id).single(),
+    sb.from('card_sets').select('*').order('created_at'),
+    sb.from('cards').select('*').order('created_at'),
+    sb.from('collections').select('card_id, qty')
+  ]);
+  if(prof.error) throw prof.error;
+  state.me      = prof.data;
+  state.isAdmin = prof.data.role === 'admin';
+  state.coins   = prof.data.coins;
+  state.packs   = prof.data.packs;
+  state.wins    = prof.data.wins;
+  state.sets = (sets.data||[]).map(s=>({ id:s.id, name:s.name, active:s.is_active }));
+  if(!state.sets.length) state.sets=[{id:'none', name:'Сезона пока нет', active:true}];
+  state.cardBank = (cards.data||[]).map(srvCard);
+  const byId = {}; state.cardBank.forEach(c=>byId[c.id]=c);
+  state.collection = [];
+  let u=1;
+  (coll.data||[]).forEach(r=>{
+    const c=byId[r.card_id]; if(!c) return;
+    for(let i=0;i<r.qty;i++) state.collection.push({ ...c, uid:'u'+(u++) });
+  });
+  return true;
+}
+function srvCard(s){
+  return { id:s.id, setId:s.set_id, name:s.name, type:s.type, rarity:s.rarity,
+           atk:s.atk, def:s.def, spd:s.spd, emoji:s.emoji||'\u2753', image:s.image_url||null };
+}
+async function refreshProfile(){
+  const { data:{ user } } = await sb.auth.getUser(); if(!user) return;
+  const { data } = await sb.from('profiles').select('coins,packs,wins').eq('id', user.id).single();
+  if(data){ state.coins=data.coins; state.packs=data.packs; state.wins=data.wins; }
+}
+
+async function enterApp(){
+  const ok = await loadFromServer();
+  if(!ok) return;
+  document.getElementById('auth-overlay').classList.add('hidden');
+  applyRole();
+  renderPackScreen();
+  if(state.isAdmin) refreshStudents();
+}
+function applyRole(){
+  const tab=document.querySelector('[data-s=admin]');
+  if(tab) tab.style.display = state.isAdmin ? '' : 'none';
+}
+
+/* ─── сохранение больше не нужно: источник правды — сервер ─── */
+function svSaveState(){}
+function svLoadState(){}
+function svResetAll(){ if(confirm('Выйти из аккаунта?')) doLogout(); }
+
+/* ─── игровые действия через сервер ─── */
+async function svOpenPack(){
+  if(state.packs<=0) return;
+  const { data, error } = await sb.rpc('open_pack');
+  if(error){ showToast(error.message); return; }
+  state.packs--; renderPackScreen();
+  const drawn=(data||[]).map((r,i)=>{
+    const c=state.cardBank.find(x=>x.id===r.card_id);
+    return c ? { ...c, uid:'p'+Date.now()+i, dup:r.is_dup } : null;
+  }).filter(Boolean);
+  if(!drawn.length){ showToast('Сервер не вернул карты'); return; }
+  drawn.forEach(c=>state.collection.push({ ...c }));
+  showReveal(drawn);
+}
+async function svSellCard(id){
+  const { data, error } = await sb.rpc('sell_card', { p_card:id });
+  if(error){ showToast(error.message); return; }
+  const idx=state.collection.map(c=>c.id).lastIndexOf(id);
+  if(idx>=0) state.collection.splice(idx,1);
+  state.coins += data; sfx('click');
+  showToast('Продано за '+data+' \u{1FA99}'); renderShop();
+}
+async function svBuyPack(){
+  const { error } = await sb.rpc('buy_pack');
+  if(error){ showToast(error.message); return; }
+  await refreshProfile(); sfx('rare');
+  showToast('Пак куплен! Открой его во вкладке «Паки» \u{1F4E6}');
+  renderShop(); renderPackScreen();
+}
+
+/* ─── админ: карты и сезоны ─── */
+async function svAddCard(){
+  const c=currentBuilderCard();
+  if(!c.name){ showToast('Впиши название'); return; }
+  if(!c.image && (!c.emoji||c.emoji==='\u2753')){ showToast('Добавь картинку или эмодзи'); return; }
+  if(!c.setId || c.setId==='none'){ showToast('Сначала создай сезон'); return; }
+  const { data, error } = await sb.from('cards').insert({
+    set_id:c.setId, name:c.name, type:c.type, rarity:c.rarity,
+    atk:c.atk, def:c.def, spd:c.spd, emoji:c.emoji, image_url:c.image
+  }).select().single();
+  if(error){ showToast(error.message); return; }
+  state.cardBank.push(srvCard(data));
+  showToast('«'+data.name+'» добавлен в банк! \u{1F3B4}');
+  document.getElementById('f-name').value=''; document.getElementById('f-emoji').value='';
+  builderImage=null;
+  document.getElementById('dz-text').innerHTML='Нажми, чтобы<br>загрузить карту';
+  document.getElementById('emoji-field').style.opacity='1';
+  document.getElementById('img-input').value='';
+  updatePreview(); renderBank();
+}
+async function svDeleteCard(id){
+  const { error } = await sb.from('cards').delete().eq('id', id);
+  if(error){ showToast(error.message); return; }
+  state.cardBank=state.cardBank.filter(c=>c.id!==id); renderBank();
+}
+async function svAddSet(){
+  const inp=document.getElementById('new-set-name'); const name=inp.value.trim(); if(!name) return;
+  await sb.from('card_sets').update({ is_active:false }).neq('id','00000000-0000-0000-0000-000000000000');
+  const { data, error } = await sb.from('card_sets').insert({ name, is_active:true }).select().single();
+  if(error){ showToast(error.message); return; }
+  state.sets=state.sets.filter(s=>s.id!=='none'); state.sets.forEach(s=>s.active=false);
+  state.sets.push({ id:data.id, name:data.name, active:true });
+  inp.value=''; renderAdmin(); renderPackScreen();
+  showToast('Сезон «'+name+'» создан и активен \u{1F7E2}');
+}
+async function svActivateSet(id){
+  await sb.from('card_sets').update({ is_active:false }).neq('id','00000000-0000-0000-0000-000000000000');
+  const { error } = await sb.from('card_sets').update({ is_active:true }).eq('id', id);
+  if(error){ showToast(error.message); return; }
+  state.sets.forEach(s=>s.active=(s.id===id));
+  renderAdmin(); renderPackScreen();
+  const s=state.sets.find(x=>x.id===id); showToast('Активный сезон: '+s.name);
+}
+async function svDeleteSet(id){
+  const s=state.sets.find(x=>x.id===id); if(!s) return;
+  const cnt=state.cardBank.filter(c=>c.setId===id).length;
+  if(!confirm('Удалить сезон «'+s.name+'»? Вместе с ним удалятся '+cnt+' карт у всех учеников.')) return;
+  const { error } = await sb.from('card_sets').delete().eq('id', id);
+  if(error){ showToast(error.message); return; }
+  state.cardBank=state.cardBank.filter(c=>c.setId!==id);
+  state.collection=state.collection.filter(c=>c.setId!==id);
+  state.sets=state.sets.filter(x=>x.id!==id);
+  if(state.sets.length && !state.sets.some(x=>x.active)) await svActivateSet(state.sets[0].id);
+  renderAdmin(); renderPackScreen();
+}
+
+/* ─── админ: ученики ─── */
+async function refreshStudents(){
+  const { data, error } = await sb.rpc('list_students');
+  if(error) return;
+  state.students=(data||[]).map(s=>({ id:s.id, name:s.login, packs:s.packs, coins:s.coins, wins:s.wins, cards:s.cards }));
+  paintStudents();
+}
+function paintStudents(){
+  const el=document.getElementById('students-list'); if(!el) return;
+  el.innerHTML = state.students.length
+    ? state.students.map(s=>`<div class="student-row">
+        <div class="student-name">${s.name}</div>
+        <div class="student-packs">\u{1F4E6} ${s.packs}</div>
+        <div class="student-packs">\u{1FA99} ${s.coins}</div>
+        <div class="student-packs">\u{1F0CF} ${s.cards}</div>
+        <button class="btn btn-ghost btn-mini" onclick="givePack('${s.id}')">+1 пак</button>
+      </div>`).join('')
+    : '<div style="font-size:13px;font-weight:700;color:var(--c-ink-soft);padding:8px 2px">Ученики появятся здесь сами, когда зарегистрируются в игре.</div>';
+  const row=el.parentElement && el.parentElement.querySelector('.add-row');
+  if(row) row.style.display='none';
+}
+async function svGivePack(userId){
+  const { error } = await sb.rpc('grant_packs', { p_user:userId, p_count:1 });
+  if(error){ showToast(error.message); return; }
+  const s=state.students.find(x=>x.id===userId);
+  if(s) s.packs++;
+  paintStudents(); showToast((s?s.name:'Ученик')+' получил(а) пак! \u{1F381}');
+}
+function svAddStudent(){ showToast('Ученики появляются сами — им нужно зарегистрироваться в игре'); }
+function svRemoveStudent(){ showToast('Удалить ученика можно только в панели Supabase'); }
+
+/* ─── ИИ-генерация теперь пишет на сервер ─── */
+async function svGenerateCards(){
+  const btn=document.getElementById('gen-btn'), status=document.getElementById('gen-status');
+  const setId=(document.getElementById('f-set')||{}).value || activeSetId();
+  if(!setId || setId==='none'){ showToast('Сначала создай сезон'); return; }
+  let key=localStorage.getItem('anthropic-key');
+  if(!key){ key=prompt('Вставь свой Anthropic API-ключ (sk-ant-...).\nОн сохранится только в этом браузере.'); if(!key||!key.trim())return; key=key.trim(); localStorage.setItem('anthropic-key',key); }
+  btn.disabled=true; status.textContent='\u23F3 Генерируем...';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{ method:'POST',
+      headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{ role:'user', content:`Придумай 6 выдуманных существ для школьной карточной игры. Верни ТОЛЬКО JSON массив без Markdown: {"name":"имя на русском","emoji":"1 эмодзи","type":"строго из: ${TYPES.join(', ')}","rarity":"common/rare/epic/legendary","atk":10-99,"def":10-99,"spd":10-99}. Распредели: 3 common, 2 rare, 1 epic.` }] }) });
+    if(!r.ok) throw new Error(r.status+': '+(await r.text()).slice(0,120));
+    const d=await r.json();
+    const txt=d.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    const rows=JSON.parse(txt).map(c=>({ set_id:setId, name:c.name, type:c.type, rarity:c.rarity,
+      atk:c.atk, def:c.def, spd:c.spd, emoji:c.emoji }));
+    const { data, error } = await sb.from('cards').insert(rows).select();
+    if(error) throw error;
+    (data||[]).forEach(c=>state.cardBank.push(srvCard(c)));
+    status.textContent='\u2705 Добавлено '+(data||[]).length+'!'; renderBank();
+  }catch(e){ status.textContent='\u274C '+(e.message||e); }
+  btn.disabled=false;
+}
+
+/* ─── подключаем сервер, только если библиотека загрузилась ─── */
+function connectServer(){
+  window.openPack=svOpenPack; window.sellCard=svSellCard; window.buyPack=svBuyPack;
+  window.addCard=svAddCard; window.deleteCard=svDeleteCard;
+  window.addSet=svAddSet; window.activateSet=svActivateSet; window.deleteSet=svDeleteSet;
+  window.givePack=svGivePack; window.generateCards=svGenerateCards;
+  window.addStudent=svAddStudent; window.removeStudent=svRemoveStudent;
+  window.saveState=svSaveState; window.loadState=svLoadState; window.resetAll=svResetAll;
+
+  const _origEndBattle = window.endBattle;
+  window.endBattle = async function(){
+    if(battle && !battle.over && aliveCount(battle.b)===0){
+      try{ await sb.rpc('award_win'); }catch(e){}
+    }
+    return _origEndBattle();
+  };
+  const _origRenderProfile = window.renderProfile;
+  window.renderProfile = function(){
+    _origRenderProfile();
+    const c=document.getElementById('profile-content'); if(!c) return;
+    const who=(state.me&&state.me.login)||'игрок';
+    c.insertAdjacentHTML('beforeend',
+      `<div class="panel" style="margin-top:14px"><h3>\u{1F464} Аккаунт</h3>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:800;color:var(--c-ink)">Ты вошёл как <b>${who}</b>${state.isAdmin?' \u2022 учитель':''}</div>
+          <button class="btn btn-red" style="box-shadow:0 3px 0 #C2352F" onclick="doLogout()">Выйти</button>
+        </div></div>`);
+  };
+  const _origRenderAdmin = window.renderAdmin;
+  window.renderAdmin = function(){ _origRenderAdmin(); paintStudents(); refreshStudents(); };
+}
+
+function offlineMode(reason){
+  document.getElementById('auth-overlay').classList.add('hidden');
+  const nav=document.querySelector('.nav');
+  if(nav && !document.getElementById('offline-chip')){
+    const chip=document.createElement('div');
+    chip.id='offline-chip'; chip.className='who-pill';
+    chip.style.cssText='position:fixed;bottom:8px;right:8px;z-index:70';
+    chip.textContent='\u{1F4F5} Офлайн-режим';
+    document.body.appendChild(chip);
+  }
+  console.warn('Офлайн-режим:', reason);
+  setTimeout(()=>showToast('Нет связи с сервером — играем офлайн, данные только на этом устройстве'), 600);
+}
+
+/* ─── старт ─── */
+(async ()=>{
+  if(!SB_READY){ offlineMode('библиотека не загрузилась'); return; }
+  connectServer();
+  try{
+    const { data:{ session } } = await sb.auth.getSession();
+    if(session) await enterApp();
+  }catch(e){
+    console.error('Автовход:', e);
+    authMsg('Нет связи с сервером. Проверь интернет.');
+  }
+})();
+</script>
+
+</body>
+</html>
