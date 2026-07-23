@@ -2377,5 +2377,83 @@ async function loadTradeLog(){
 }
 </script>
 
+<style>
+  .role-chip{ font-size:9px; font-weight:900; letter-spacing:.05em; text-transform:uppercase;
+    padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .role-admin{ background:linear-gradient(180deg,#FFDC6B,#E0A21C); color:#5A3A00; border:1.5px solid #B9760A; }
+  .role-student{ background:#E4EBDD; color:#4E6E58; border:1.5px solid rgba(34,110,67,.3); }
+  .student-row.is-admin{ background:linear-gradient(180deg,#FFFBEC,#FFF3D4); border-color:rgba(224,162,28,.5); }
+  .srow-stats{ display:flex; gap:9px; flex-wrap:wrap; }
+</style>
+<script>
+if(typeof SB_READY!=='undefined' && SB_READY){
+
+  window.paintStudents = function(){
+    const el=document.getElementById('students-list'); if(!el) return;
+    const me=(state.me&&state.me.id)||null;
+    el.innerHTML = state.students.length
+      ? state.students.map(s=>{
+          const isAdm = s.role==='admin';
+          const self  = s.id===me;
+          return `<div class="student-row ${isAdm?'is-admin':''}">
+            <div class="student-name">${s.login||s.name}${self?' <span style="color:var(--c-ink-soft);font-weight:700">— это ты</span>':''}</div>
+            <span class="role-chip ${isAdm?'role-admin':'role-student'}">${isAdm?'админ':'ученик'}</span>
+            <div class="srow-stats">
+              <span class="student-packs">\u{1F4E6} ${s.packs}</span>
+              <span class="student-packs">\u{1FA99} ${s.coins}</span>
+              <span class="student-packs">\u{1F0CF} ${s.cards}</span>
+            </div>
+            <button class="btn btn-ghost btn-mini" onclick="givePack('${s.id}')">+1 пак</button>
+            ${ isAdm
+                ? `<button class="btn btn-red btn-mini" onclick="setRole('${s.id}','student')">Снять админа</button>`
+                : `<button class="btn btn-ghost btn-mini" onclick="setRole('${s.id}','admin')">Сделать админом</button>` }
+          </div>`;
+        }).join('')
+      : '<div style="font-size:13px;font-weight:700;color:var(--c-ink-soft);padding:8px 2px">Игроки появятся здесь сами, когда зарегистрируются.</div>';
+    const row=el.parentElement && el.parentElement.querySelector('.add-row');
+    if(row) row.style.display='none';
+  };
+
+  window.refreshStudents = async function(){
+    const { data, error } = await sb.rpc('list_students');
+    if(error) return;
+    state.students=(data||[]).map(s=>({
+      id:s.id, login:s.login, name:s.login, role:s.role||'student',
+      packs:s.packs, coins:s.coins, wins:s.wins, cards:s.cards
+    }));
+    paintStudents();
+  };
+
+  window.setRole = async function(userId, role){
+    const s=state.students.find(x=>x.id===userId);
+    const who=s?(s.login||s.name):'игрок';
+    const msg = role==='admin'
+      ? `Сделать «${who}» админом? Он сможет создавать карты, выдавать паки и назначать других админов.`
+      : `Снять с «${who}» права админа?`;
+    if(!confirm(msg)) return;
+    const { error } = await sb.rpc('set_role', { p_user:userId, p_role:role });
+    if(error){ showToast(error.message); return; }
+    sfx('click');
+    showToast(role==='admin' ? `«${who}» теперь админ \u{1F451}` : `«${who}» снова ученик`);
+    await refreshStudents();
+    if(userId===((state.me&&state.me.id)||null)){
+      state.isAdmin=(role==='admin'); state.me.role=role; applyRole();
+      if(!state.isAdmin){ showScreen('packs', document.querySelector('[data-s=packs]')); }
+    }
+  };
+
+  window.givePacks = async function(userId, n){
+    const { error } = await sb.rpc('grant_packs', { p_user:userId, p_count:n });
+    if(error){ showToast(error.message); return; }
+    const s=state.students.find(x=>x.id===userId);
+    if(s) s.packs+=n;
+    if(userId===((state.me&&state.me.id)||null)){ state.packs+=n; renderPackScreen(); }
+    paintStudents();
+    showToast((s?(s.login||s.name):'Игрок')+' получил(а) '+n+' пак(ов) \u{1F381}');
+  };
+  window.givePack = function(userId){ return givePacks(userId, 1); };
+}
+</script>
+
 </body>
 </html>
