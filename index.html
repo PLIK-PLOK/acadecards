@@ -1230,7 +1230,7 @@ function renderProfile(){
       <div class="stat-card"><div class="stat-num">${legUniq}</div><div class="stat-lbl">\u{1F451} Легендарок</div></div>
       <div class="stat-card"><div class="stat-num" style="font-size:18px">${favType}</div><div class="stat-lbl">\u{1F525} Любимая стихия</div></div>
       <div class="stat-card"><div class="stat-num">${state.packs}</div><div class="stat-lbl">\u{1F4E6} Паков в запасе</div></div>
-      <div class="stat-card"><div class="stat-num">\u{1FA99} ${state.coins||0}</div><div class="stat-lbl">\u{1F4B0} Монет</div></div>
+      <div class="stat-card"><div class="stat-num">\u{1F4B0} ${state.coins||0}</div><div class="stat-lbl">\u{1F4B0} Монет</div></div>
       ${best?`<div class="stat-card wide"><div class="big-emoji">${best.image?`<img src="${best.image}" style="width:42px;height:42px;border-radius:10px;object-fit:cover">`:(best.emoji||'\u2753')}</div><div><div style="font-family:'Russo One';font-size:15px;color:var(--c-ink)">${best.name}</div><div style="font-size:12px;color:var(--c-ink-soft);font-weight:600">Сильнейшая карта \u2022 ${best.type} \u2022 \u2694\uFE0F${best.atk} \u{1F6E1}${best.def} \u26A1${best.spd}</div></div></div>`:''}
     </div>
     <div class="panel" style="margin-top:14px"><h3>\u2699\uFE0F Настройки</h3>
@@ -1716,7 +1716,7 @@ async function endBattle(){
       <div style="font-size:64px;margin-bottom:8px">${won?'\u{1F3C6}':'\u{1F494}'}</div>
       <div class="result-title ${won?'result-win':'result-lose'}">${won?'ПОБЕДА!':'Поражение'}</div>
       <div class="page-sub" style="margin-bottom:8px">${won?'Твоя тактика сработала!':'Попробуй другой состав или тактику.'}</div>
-      <div class="page-sub" style="margin-bottom:20px">Ходов: ${battle.round} \u2022 Время боя: ${mm}:${ss}${won?` \u2022 <b style="color:var(--c-lime)">+${WIN_REWARD} \u{1FA99}</b>`:''}</div>
+      <div class="page-sub" style="margin-bottom:20px">Ходов: ${battle.round} \u2022 Время боя: ${mm}:${ss}${won?` \u2022 <b style="color:var(--c-lime)">+${WIN_REWARD} \u{1F4B0}</b>`:''}</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="renderBattleSelect()">Новый бой \u2694\uFE0F</button>
         <button class="btn btn-ghost" onclick="showScreen('collection', document.querySelector('[data-s=collection]'))">В коллекцию</button>
@@ -1741,28 +1741,28 @@ function sellCard(id){
   const idx=state.collection.map(c=>c.id).lastIndexOf(id);
   state.collection.splice(idx,1);
   state.coins+=price; saveState(); sfx('click');
-  showToast(`«${card.name}» продан за ${price} \u{1FA99}`); renderShop();
+  showToast(`«${card.name}» продан за ${price} \u{1F4B0}`); renderShop();
 }
 function renderShop(){
   const cc=document.getElementById('coin-count'); if(cc)cc.textContent=state.coins;
   const dups=groupedCollection().filter(g=>g.count>1);
   const sellHTML=dups.map(g=>`<div class="sell-item">${makeCardHTML(g.card,{count:g.count})}
-      <button class="sell-btn" onclick="sellCard('${g.card.id}')">Продать \u{1FA99} ${sellPrice(g.card)}</button></div>`).join('');
+      <button class="sell-btn" onclick="sellCard('${g.card.id}')">Продать \u{1F4B0} ${sellPrice(g.card)}</button></div>`).join('');
   document.getElementById('shop-content').innerHTML=`
-    <div class="panel"><h3>\u{1F4B0} Сдать дубликаты</h3>
+    <div class="panel"><h3>\u{1F4B8} Сдать дубликаты</h3>
       <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-bottom:12px">Скупщик берёт только повторки и платит немного \u2014 последний экземпляр всегда остаётся в коллекции.</div>
       ${sellHTML?`<div class="shop-offers">${sellHTML}</div>`:'<div class="empty-state" style="padding:1.5rem;color:var(--c-ink-soft)">Повторок пока нет \u2014 открывай паки</div>'}
     </div>
     <div class="panel"><h3>\u{1F4E6} Купить пак</h3>
       <div class="shop-row"><div class="grow" style="font-size:13px;font-weight:700;color:var(--c-ink-soft)">Пак из 5 случайных существ активного сезона.</div>
-        <span class="price-tag">\u{1FA99} ${PACK_PRICE}</span>
+        <span class="price-tag">\u{1F4B0} ${PACK_PRICE}</span>
         <button class="btn btn-primary" style="padding:11px 20px;font-size:14px" ${state.coins>=PACK_PRICE?'':'disabled'} onclick="buyPack()">Купить</button></div>
     </div>
     <div class="panel"><h3>\u{1F4CB} Сколько платит скупщик</h3>
       <div class="rate-grid">
-        ${Object.keys(SELL_PRICE).map(r=>`<div class="rate-cell"><div class="rn">${rLabel(r)}</div><div class="rv">\u{1FA99} ${SELL_PRICE[r]}</div></div>`).join('')}
+        ${Object.keys(SELL_PRICE).map(r=>`<div class="rate-cell"><div class="rn">${rLabel(r)}</div><div class="rv">\u{1F4B0} ${SELL_PRICE[r]}</div></div>`).join('')}
       </div>
-      <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-top:10px">За победу в бою дают \u{1FA99} ${WIN_REWARD}. Цены низкие специально: скоро появится торговая площадка, где обмен с одноклассниками будет куда выгоднее \u2014 копи монеты.</div>
+      <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-top:10px">За победу в бою дают \u{1F4B0} ${WIN_REWARD}. Цены низкие специально: скоро появится торговая площадка, где обмен с одноклассниками будет куда выгоднее \u2014 копи монеты.</div>
     </div>`;
 }
 
@@ -2037,7 +2037,7 @@ async function svSellCard(id){
   const idx=state.collection.map(c=>c.id).lastIndexOf(id);
   if(idx>=0) state.collection.splice(idx,1);
   state.coins += data; sfx('click');
-  showToast('Продано за '+data+' \u{1FA99}'); renderShop();
+  showToast('Продано за '+data+' \u{1F4B0}'); renderShop();
 }
 async function svBuyPack(){
   const { error } = await sb.rpc('buy_pack');
@@ -2116,7 +2116,7 @@ function paintStudents(){
     ? state.students.map(s=>`<div class="student-row">
         <div class="student-name">${s.name}</div>
         <div class="student-packs">\u{1F4E6} ${s.packs}</div>
-        <div class="student-packs">\u{1FA99} ${s.coins}</div>
+        <div class="student-packs">\u{1F4B0} ${s.coins}</div>
         <div class="student-packs">\u{1F0CF} ${s.cards}</div>
         <button class="btn btn-ghost btn-mini" onclick="givePack('${s.id}')">+1 пак</button>
       </div>`).join('')
@@ -2275,7 +2275,7 @@ async function listCard(cardId){
 async function buyLot(id){
   const { data, error } = await sb.rpc('buy_listing', { p_listing:id });
   if(error){ showToast(error.message); return; }
-  sfx('epic'); showToast('Куплено за '+data+' \u{1FA99}');
+  sfx('epic'); showToast('Куплено за '+data+' \u{1F4B0}');
   await Promise.all([refreshProfile(), refreshCollection(), loadMarket()]);
   renderShop();
 }
@@ -2307,14 +2307,14 @@ function marketHTML(){
       <div class="lot-seller">\u{1F464} ${l.seller_login}</div>
       ${lotCardHTML(l)}
       <div class="lot-row">
-        <div class="lot-price">\u{1FA99} ${l.price}</div>
+        <div class="lot-price">\u{1F4B0} ${l.price}</div>
         <button class="offer-buy" style="width:auto;margin-top:0;padding:8px 14px" ${state.coins>=l.price?'':'disabled'} onclick="buyLot('${l.listing_id}')">Купить</button>
       </div></div>`).join('');
 
   const mineHTML=mine.map(l=>`<div class="lot">
       ${lotCardHTML(l)}
       <div class="lot-row">
-        <div class="lot-price">\u{1FA99} ${l.price}</div>
+        <div class="lot-price">\u{1F4B0} ${l.price}</div>
         <button class="btn btn-red btn-mini" style="padding:8px 12px" onclick="cancelLot('${l.listing_id}')">Снять</button>
       </div></div>`).join('');
 
@@ -2370,7 +2370,7 @@ async function loadTradeLog(){
     <tr><th>Карта</th><th>Цена</th><th>Продал</th><th>Купил</th><th>Когда</th></tr>
     ${data.map(t=>`<tr>
       <td>${t.card_name} <span style="color:var(--c-ink-soft)">${rLabel(t.rarity)}</span></td>
-      <td>\u{1FA99} ${t.price}</td><td>${t.seller||'—'}</td><td>${t.buyer||'—'}</td>
+      <td>\u{1F4B0} ${t.price}</td><td>${t.seller||'—'}</td><td>${t.buyer||'—'}</td>
       <td style="color:var(--c-ink-soft)">${new Date(t.closed_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
     </tr>`).join('')}
   </table></div>`;
@@ -2400,7 +2400,7 @@ if(typeof SB_READY!=='undefined' && SB_READY){
             <span class="role-chip ${isAdm?'role-admin':'role-student'}">${isAdm?'админ':'ученик'}</span>
             <div class="srow-stats">
               <span class="student-packs">\u{1F4E6} ${s.packs}</span>
-              <span class="student-packs">\u{1FA99} ${s.coins}</span>
+              <span class="student-packs">\u{1F4B0} ${s.coins}</span>
               <span class="student-packs">\u{1F0CF} ${s.cards}</span>
             </div>
             <button class="btn btn-ghost btn-mini" onclick="givePack('${s.id}')">+1 пак</button>
