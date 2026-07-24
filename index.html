@@ -2977,5 +2977,154 @@ if(typeof SB_READY!=='undefined' && SB_READY){
 }
 </script>
 
+<style>
+  .boosters-row{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+  .booster-slot{ position:relative; text-align:center; }
+  .booster-slot .booster{ margin:0 auto; }
+  .booster-qty{ position:absolute; top:-10px; right:-10px; z-index:6; min-width:32px; height:32px; padding:0 9px;
+    display:flex; align-items:center; justify-content:center; border-radius:99px;
+    font-family:'Russo One'; font-size:15px; color:#fff;
+    background:linear-gradient(180deg,#2E8250,#14532F); border:2.5px solid var(--c-abyss);
+    box-shadow:0 3px 0 var(--c-abyss); }
+  .booster-tag{ margin-top:9px; font-size:11px; font-weight:900; padding:4px 12px; border-radius:99px; display:inline-block; }
+  .bt-active{ background:linear-gradient(180deg,var(--c-lime),var(--c-green)); color:var(--c-pine); border:2px solid var(--c-abyss); }
+  .bt-archive{ background:rgba(5,35,20,.55); color:#CFE6BE; border:2px solid rgba(201,231,162,.4); }
+  .supply-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 13px; margin-bottom:9px; border-radius:13px;
+    background:linear-gradient(180deg,#F7FCEF,#E9F5DA); border:2px solid rgba(34,110,67,.3); }
+  .supply-name{ font-family:'Russo One'; font-size:14px; color:var(--c-ink); }
+  .supply-bar{ flex:1; min-width:120px; height:12px; border-radius:99px; overflow:hidden;
+    background:rgba(5,35,20,.35); border:2px solid var(--c-abyss); }
+  .supply-fill{ height:100%; border-radius:99px; transition:width .5s;
+    background:linear-gradient(180deg,#D9F2B4,#4FA157); }
+  .supply-fill.low{ background:linear-gradient(180deg,#FFD86B,#E09A17); }
+  .supply-fill.out{ background:linear-gradient(180deg,#FF8A80,#C2352F); }
+  .supply-num{ font-family:'Russo One'; font-size:13px; color:var(--c-forest); white-space:nowrap; }
+  .supply-input{ width:92px; text-align:center; font-family:'Nunito'; font-weight:900; font-size:13px; padding:7px;
+    background:#fff; border:2.5px solid rgba(34,110,67,.35); border-radius:11px; }
+</style>
+<script>
+if(typeof SB_READY!=='undefined' && SB_READY){
+(function(){
+  let myPacks=[], supply=[];
+
+  window.loadMyPacks = async function(){
+    const { data, error } = await sb.rpc('my_packs');
+    if(!error) myPacks = data || [];
+    paintPackScreen();
+  };
+
+  function boosterHTML(p){
+    return `<div class="booster-slot">
+        <div class="booster-qty">${p.qty}</div>
+        <div class="booster idle" onclick="openPack('${p.set_id}')">
+          <div class="booster-lid"></div>
+          <div class="booster-inner">
+            <div class="booster-logo">\u2726</div>
+            <div class="booster-set">${p.name}</div>
+            <div class="booster-foot">5 карт</div>
+          </div>
+        </div>
+        <div class="booster-tag ${p.is_active?'bt-active':'bt-archive'}">${p.is_active?'текущий сезон':'архив \u2022 больше не выпускается'}</div>
+      </div>`;
+  }
+
+  function paintPackScreen(){
+    const stage=document.querySelector('.pack-stage'); if(!stage) return;
+    const total=myPacks.reduce((s,p)=>s+p.qty,0);
+    state.packs=total;
+    const body = total
+      ? `<div class="boosters-row">${myPacks.map(boosterHTML).join('')}</div>
+         <p class="hint">${myPacks.length>1?'Нажми на пак нужного сезона':'Нажми на пак, чтобы открыть'}</p>`
+      : `<div style="padding:1.5rem 0">
+           <div style="font-size:54px;opacity:.5">\u{1F4E6}</div>
+           <p class="hint" style="margin-top:10px">Паков пока нет. Пришли фото оценки — админ начислит.</p>
+         </div>`;
+    stage.innerHTML=`<div class="rays"></div>
+      <div class="pack-pill"><div class="pack-num" id="pack-count">${total}</div><div class="lbl">паков<br>доступно</div></div>
+      ${body}
+      <div class="req-btn-row"><button class="btn btn-ghost" id="req-open-btn" onclick="openReqModal()">\u{1F4F7} Запросить паки за оценку</button></div>`;
+  }
+
+  window.renderPackScreen = function(){
+    paintPackScreen();
+    loadMyPacks();
+  };
+
+  /* ─── открытие пака конкретного сезона ─── */
+  window.openPack = async function(setId){
+    if(!setId){
+      const first=myPacks.find(p=>p.qty>0);
+      if(!first){ showToast('У тебя нет паков'); return; }
+      setId=first.set_id;
+    }
+    const { data, error } = await sb.rpc('open_pack', { p_set:setId });
+    if(error){ showToast(error.message); return; }
+    loadMyPacks();   // берём актуальный остаток с сервера
+    const drawn=(data||[]).map((r,i)=>{
+      const c=state.cardBank.find(x=>x.id===r.card_id);
+      return c ? { ...c, uid:'p'+Date.now()+i, dup:r.is_dup } : null;
+    }).filter(Boolean);
+    if(!drawn.length){ showToast('Сервер не вернул карты'); return; }
+    drawn.forEach(c=>state.collection.push({ ...c }));
+    showReveal(drawn);
+  };
+
+  /* ─── тираж сезонов в админке ─── */
+  window.loadSupply = async function(){
+    const { data, error } = await sb.rpc('season_supply');
+    if(!error) supply = data || [];
+    paintSets();
+  };
+
+  function paintSets(){
+    const el=document.getElementById('sets-list'); if(!el) return;
+    if(!supply.length){ el.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--c-ink-soft)">Сезонов пока нет.</div>'; return; }
+    el.innerHTML=supply.map(s=>{
+      const lim=s.pack_limit, issued=s.packs_issued||0;
+      const left=(lim==null)?null:Math.max(0,lim-issued);
+      const pct=(lim==null||lim===0)?0:Math.min(100, issued/lim*100);
+      const cls=(left===null)?'':(left===0?'out':(left<=lim*0.2?'low':''));
+      return `<div class="supply-row">
+        <div class="supply-name">${s.is_active?'\u{1F7E2} ':'\u{1F4E6} '}${s.name}</div>
+        <span style="font-size:11px;font-weight:800;color:var(--c-ink-soft)">${s.cards} карт</span>
+        ${lim==null
+          ? '<span class="supply-num" style="color:var(--c-ink-soft)">тираж не задан</span>'
+          : `<div class="supply-bar"><div class="supply-fill ${cls}" style="width:${pct}%"></div></div>
+             <span class="supply-num">${issued} / ${lim}${left===0?' \u2022 закрыт':''}</span>`}
+        <input class="supply-input" id="lim-${s.set_id}" type="number" min="${issued}" placeholder="тираж"
+               value="${lim==null?'':lim}">
+        <button class="btn btn-ghost btn-mini" onclick="saveLimit('${s.set_id}')">Задать</button>
+        ${s.is_active?'<span style="font-family:Russo One;font-size:12px;color:var(--c-forest)">АКТИВНЫЙ</span>'
+                     :`<button class="btn btn-ghost btn-mini" onclick="activateSet('${s.set_id}')">Сделать активным</button>`}
+        ${supply.length>1?`<button class="btn btn-red btn-mini" onclick="deleteSet('${s.set_id}')">\u2715</button>`:''}
+      </div>`;
+    }).join('');
+  }
+  window.renderSets = paintSets;
+
+  window.saveLimit = async function(setId){
+    const el=document.getElementById('lim-'+setId);
+    const raw=(el&&el.value||'').trim();
+    const val = raw==='' ? null : parseInt(raw,10);
+    if(raw!=='' && (isNaN(val)||val<0)){ showToast('Введи число'); return; }
+    const { error } = await sb.rpc('set_pack_limit', { p_set:setId, p_limit:val });
+    if(error){ showToast(error.message); return; }
+    sfx('click');
+    showToast(val==null ? 'Тираж снят — паки без ограничения' : 'Тираж сезона: '+val);
+    loadSupply();
+  };
+
+  const _renderAdmin5 = window.renderAdmin;
+  window.renderAdmin = function(){ _renderAdmin5(); loadSupply(); };
+
+  /* после выдачи паков обновляем и остаток тиража */
+  const _givePacks = window.givePacks;
+  if(_givePacks) window.givePacks = async function(u,n){ await _givePacks(u,n); loadSupply(); };
+  const _decide = window.decideRequest;
+  if(_decide) window.decideRequest = async function(id,ok){ await _decide(id,ok); loadSupply(); };
+})();
+}
+</script>
+
 </body>
 </html>
