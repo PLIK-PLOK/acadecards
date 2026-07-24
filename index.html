@@ -2471,7 +2471,7 @@ if(typeof SB_READY!=='undefined' && SB_READY){
   const MUSIC_VOL = 0.35, SFX_VOL = 0.6;
 
   const _sfx = window.sfx;
-  let musicOn=false, started=false, curTrack=null, curAudio=null, fadeTimer=null;
+  let musicOn=false, started=false, curTrack=null, curAudio=null;
   const players={}, sfxCache={};
   try{ musicOn = localStorage.getItem('acade-music') !== 'off'; }catch(e){}
 
@@ -2484,12 +2484,15 @@ if(typeof SB_READY!=='undefined' && SB_READY){
   }
   function fadeTo(audio, target, ms){
     if(!audio) return;
-    if(fadeTimer){ clearInterval(fadeTimer); fadeTimer=null; }
+    // у каждого трека свой таймер: иначе затухание одного обрывало появление другого
+    if(audio._fade){ clearInterval(audio._fade); audio._fade = null; }
     const step = 40, delta = (target - audio.volume) / Math.max(1, ms/step);
-    fadeTimer = setInterval(()=>{
+    if(delta === 0){ if(target===0){ try{ audio.pause(); }catch(e){} } return; }
+    audio._fade = setInterval(()=>{
       let v = audio.volume + delta;
       if((delta>0 && v>=target) || (delta<0 && v<=target)){
-        v = target; clearInterval(fadeTimer); fadeTimer=null;
+        v = target;
+        clearInterval(audio._fade); audio._fade = null;
         if(target===0){ try{ audio.pause(); }catch(e){} }
       }
       try{ audio.volume = Math.max(0, Math.min(1, v)); }catch(e){}
