@@ -2632,5 +2632,350 @@ if(typeof SB_READY!=='undefined' && SB_READY){
 })();
 </script>
 
+<style>
+  .req-btn-row{ margin-top:14px; display:flex; gap:9px; justify-content:center; flex-wrap:wrap; }
+  .req-badge{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px;
+    margin-left:6px; border-radius:99px; font-size:11px; font-weight:900; color:#fff;
+    background:linear-gradient(180deg,#FF8A80,#C2352F); border:1.5px solid var(--c-abyss); }
+  .req-modal{ position:fixed; inset:0; z-index:400; display:none; align-items:center; justify-content:center; padding:16px;
+    background:radial-gradient(ellipse at center, rgba(22,90,54,.92), rgba(3,20,11,.97)); }
+  .req-modal.open{ display:flex; }
+  .req-box{ width:min(96vw,440px); max-height:88vh; display:flex; flex-direction:column; border-radius:20px; overflow:hidden;
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border:3px solid var(--c-pine);
+    box-shadow:0 8px 0 rgba(5,35,20,.6), 0 20px 44px rgba(0,0,0,.6); }
+  .req-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 16px;
+    background:linear-gradient(180deg,#2E8250,#14532F); color:#fff; font-family:'Russo One'; font-size:15px;
+    border-bottom:3px solid var(--c-abyss); text-shadow:0 2px 0 rgba(5,35,20,.6); }
+  .req-body{ padding:16px; overflow-y:auto; }
+  .req-drop{ border:3px dashed var(--c-green); border-radius:15px; background:linear-gradient(180deg,#F7FCEF,#E9F5DA);
+    min-height:150px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;
+    text-align:center; padding:14px; color:var(--c-ink-soft); overflow:hidden; }
+  .req-drop:hover{ background:#EDF8DE; border-color:var(--c-emerald); }
+  .req-drop img{ max-width:100%; max-height:230px; border-radius:11px; display:block; }
+  .req-list{ display:flex; flex-direction:column; gap:8px; }
+  .req-item{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:12px; flex-wrap:wrap;
+    background:#FBFEF6; border:2px solid rgba(34,110,67,.22); }
+  .req-status{ font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.04em; padding:3px 9px; border-radius:99px; }
+  .rs-pending{ background:#FFF0C9; color:#8A6100; border:1.5px solid #E0A21C; }
+  .rs-approved{ background:#DCF3D2; color:#1F6B33; border:1.5px solid #3D9257; }
+  .rs-rejected{ background:#FFE3E3; color:#A32B25; border:1.5px solid #C2352F; }
+  .req-when{ font-size:11px; font-weight:700; color:var(--c-ink-soft); }
+  .req-card{ padding:12px; border-radius:14px; margin-bottom:10px;
+    background:#FBFEF6; border:2px solid rgba(34,110,67,.25); }
+  .req-photo{ width:100%; max-height:280px; object-fit:contain; border-radius:11px; background:#0C3A21; cursor:zoom-in; }
+  .req-meta{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:9px; }
+  .req-who{ font-family:'Russo One'; font-size:14px; color:var(--c-ink); }
+  .req-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; }
+  .req-packs{ width:78px; text-align:center; font-family:'Nunito'; font-weight:900; font-size:14px; padding:8px;
+    background:#fff; border:2.5px solid rgba(34,110,67,.35); border-radius:11px; }
+  .req-note{ flex:1; min-width:130px; font-family:'Nunito'; font-weight:700; font-size:13px; padding:8px 11px;
+    background:#fff; border:2.5px solid rgba(34,110,67,.35); border-radius:11px; }
+</style>
+
+<div class="req-modal" id="req-modal">
+  <div class="req-box">
+    <div class="req-head"><span>&#128247; Запросить паки за оценку</span>
+      <button class="rules-x" onclick="closeReqModal()">&#10005;</button></div>
+    <div class="req-body">
+      <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-bottom:12px">
+        Сфотографируй оценку в дневнике или журнале. Админ проверит и начислит паки.</div>
+      <input type="file" id="req-file" accept="image/*" style="display:none" onchange="onReqPhoto(event)">
+      <div class="req-drop" id="req-drop" onclick="document.getElementById('req-file').click()">
+        <div style="font-size:34px;margin-bottom:6px">&#128248;</div>
+        <div style="font-size:12px;font-weight:900">Нажми, чтобы<br>сфотографировать или выбрать фото</div>
+      </div>
+      <div style="margin-top:12px">
+        <label style="display:block;font-size:11px;font-weight:900;color:var(--c-ink-soft);margin-bottom:5px;text-transform:uppercase">За что (необязательно)</label>
+        <input class="input-field" id="req-comment" placeholder="Напр. пятёрка по математике" maxlength="120">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px" id="req-send" onclick="sendRequest()">Отправить заявку</button>
+      <div id="req-my" style="margin-top:16px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+if(typeof SB_READY!=='undefined' && SB_READY){
+  let reqPhoto=null;
+
+  window.openReqModal=function(){
+    document.getElementById('req-modal').classList.add('open');
+    sfx('click'); loadMyRequests();
+  };
+  window.closeReqModal=function(){ document.getElementById('req-modal').classList.remove('open'); };
+
+  window.onReqPhoto=async function(ev){
+    const f=ev.target.files[0]; if(!f) return;
+    try{
+      reqPhoto=await compressImage(f, 900, 0.62);
+      document.getElementById('req-drop').innerHTML='<img src="'+reqPhoto+'" alt="фото оценки">';
+    }catch(e){ showToast('Не удалось загрузить фото'); }
+  };
+
+  window.sendRequest=async function(){
+    if(!reqPhoto){ showToast('Сначала приложи фото оценки'); return; }
+    const btn=document.getElementById('req-send'); btn.disabled=true;
+    const note=document.getElementById('req-comment').value.trim();
+    const { error } = await sb.rpc('create_pack_request', { p_photo:reqPhoto, p_comment:note||null });
+    btn.disabled=false;
+    if(error){ showToast(error.message); return; }
+    sfx('rare'); showToast('Заявка отправлена! Ждём решения админа \u{1F4E8}');
+    reqPhoto=null; document.getElementById('req-comment').value='';
+    document.getElementById('req-drop').innerHTML=
+      '<div style="font-size:34px;margin-bottom:6px">\u{1F4F8}</div><div style="font-size:12px;font-weight:900">Нажми, чтобы<br>сфотографировать или выбрать фото</div>';
+    loadMyRequests();
+  };
+
+  const RS={pending:['rs-pending','на рассмотрении'],approved:['rs-approved','одобрено'],rejected:['rs-rejected','отклонено']};
+  function when(t){ return new Date(t).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+
+  window.loadMyRequests=async function(){
+    const box=document.getElementById('req-my'); if(!box) return;
+    const { data, error } = await sb.rpc('my_requests');
+    if(error||!data||!data.length){ box.innerHTML=''; return; }
+    box.innerHTML='<div style="font-family:\'Russo One\';font-size:13px;color:var(--c-forest);margin-bottom:8px">Мои заявки</div>'
+      + '<div class="req-list">' + data.map(r=>{
+      const s=RS[r.status]||RS.pending;
+      return `<div class="req-item">
+        <span class="req-status ${s[0]}">${s[1]}</span>
+        <span style="flex:1;font-size:12px;font-weight:800;min-width:90px">${r.comment||'без подписи'}</span>
+        ${r.status==='approved'?`<span class="student-packs">\u{1F4E6} +${r.packs_given}</span>`:''}
+        <span class="req-when">${when(r.created_at)}</span>
+        ${r.admin_note?`<div style="width:100%;font-size:11px;font-weight:700;color:var(--c-ink-soft)">Ответ: ${r.admin_note}</div>`:''}
+      </div>`; }).join('') + '</div>';
+  };
+
+  /* ─── кнопка на экране паков ─── */
+  const _renderPackScreen = window.renderPackScreen;
+  window.renderPackScreen = function(){
+    _renderPackScreen();
+    const stage=document.querySelector('.pack-stage');
+    if(stage && !document.getElementById('req-open-btn')){
+      stage.insertAdjacentHTML('beforeend',
+        `<div class="req-btn-row"><button class="btn btn-ghost" id="req-open-btn" onclick="openReqModal()">\u{1F4F7} Запросить паки за оценку</button></div>`);
+    }
+    const hint=stage && stage.querySelector('.hint');
+    if(hint) hint.textContent='Паки начисляет админ по заявке с фото оценки';
+  };
+
+  /* ─── панель админа ─── */
+  window.loadPendingRequests=async function(){
+    const box=document.getElementById('req-admin-body'); if(!box) return;
+    const { data, error } = await sb.rpc('pending_requests');
+    if(error){ box.textContent='Не удалось загрузить'; return; }
+    const n=(data||[]).length;
+    const badge=document.getElementById('req-count');
+    if(badge) badge.textContent = n ? n : '';
+    if(badge) badge.style.display = n ? 'inline-flex' : 'none';
+    if(!n){ box.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--c-ink-soft)">Новых заявок нет.</div>'; return; }
+    box.innerHTML=(data||[]).map(r=>`
+      <div class="req-card" id="rq-${r.id}">
+        <div class="req-meta">
+          <span class="req-who">${r.login}</span>
+          <span class="req-when">${when(r.created_at)}</span>
+          ${r.comment?`<span style="font-size:12px;font-weight:800;color:var(--c-ink)">${r.comment}</span>`:''}
+        </div>
+        <img class="req-photo" src="${r.photo}" alt="фото оценки" onclick="window.open().document.write('<img src=\\'${r.photo}\\' style=\\'max-width:100%\\'>')">
+        <div class="req-actions">
+          <input class="req-packs" id="rp-${r.id}" type="number" min="1" max="20" value="1">
+          <input class="req-note" id="rn-${r.id}" placeholder="комментарий (необязательно)" maxlength="100">
+          <button class="btn btn-primary" style="padding:9px 16px;font-size:13px" onclick="decideRequest('${r.id}',true)">Одобрить</button>
+          <button class="btn btn-red" style="padding:9px 16px;font-size:13px;box-shadow:0 3px 0 #C2352F" onclick="decideRequest('${r.id}',false)">Отклонить</button>
+        </div>
+      </div>`).join('');
+  };
+
+  window.decideRequest=async function(id, approve){
+    const packs=parseInt((document.getElementById('rp-'+id)||{}).value,10)||1;
+    const note=((document.getElementById('rn-'+id)||{}).value||'').trim();
+    const { data, error } = await sb.rpc('decide_request',
+      { p_id:id, p_approve:approve, p_packs:packs, p_note:note||null });
+    if(error){ showToast(error.message); return; }
+    sfx(approve?'rare':'click');
+    showToast(approve ? ('Одобрено, выдано '+data+' пак(ов) \u{1F4E6}') : 'Заявка отклонена');
+    const card=document.getElementById('rq-'+id); if(card) card.remove();
+    loadPendingRequests();
+    if(typeof refreshStudents==='function') refreshStudents();
+  };
+
+  const _renderAdmin3 = window.renderAdmin;
+  window.renderAdmin = function(){
+    _renderAdmin3();
+    if(!document.getElementById('req-admin-panel')){
+      const scr=document.getElementById('screen-admin');
+      const first=scr && scr.querySelector('.panel');
+      const html=`<div class="panel" id="req-admin-panel">
+        <h3>\u{1F4E5} Заявки на паки <span class="req-badge" id="req-count" style="display:none"></span></h3>
+        <div id="req-admin-body" style="font-size:13px;font-weight:700;color:var(--c-ink-soft)">Загружаем...</div>
+      </div>`;
+      if(first) first.insertAdjacentHTML('beforebegin', html);
+      else if(scr) scr.insertAdjacentHTML('beforeend', html);
+    }
+    loadPendingRequests();
+  };
+}
+</script>
+
+<script>
+/* ═══ Экономия трафика: картинки карт запоминаются в браузере ═══
+   Список карт приходит с сервера всегда (он лёгкий, ~80 байт на карту),
+   а картинка скачивается один раз и дальше берётся из памяти браузера. */
+if(typeof SB_READY!=='undefined' && SB_READY){
+(function(){
+  const DB_NAME='acadecards-img', STORE='img';
+  let dbp=null;
+
+  function openDB(){
+    if(dbp) return dbp;
+    dbp=new Promise((res,rej)=>{
+      if(!window.indexedDB){ rej(new Error('нет IndexedDB')); return; }
+      const r=indexedDB.open(DB_NAME,1);
+      r.onupgradeneeded=()=>{ const d=r.result; if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE); };
+      r.onsuccess=()=>res(r.result);
+      r.onerror=()=>rej(r.error);
+    }).catch(e=>{ console.warn('Кэш картинок недоступен:', e && e.message); return null; });
+    return dbp;
+  }
+  async function idbGetAll(){
+    const db=await openDB(); if(!db) return {};
+    return new Promise(res=>{
+      const out={};
+      try{
+        const tx=db.transaction(STORE,'readonly'), st=tx.objectStore(STORE);
+        const cur=st.openCursor();
+        cur.onsuccess=()=>{ const c=cur.result; if(c){ out[c.key]=c.value; c.continue(); } else res(out); };
+        cur.onerror=()=>res(out);
+      }catch(e){ res(out); }
+    });
+  }
+  async function idbPut(key,val){
+    const db=await openDB(); if(!db) return;
+    try{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(val,key); }catch(e){}
+  }
+  async function idbDropMissing(validIds){
+    const db=await openDB(); if(!db) return;
+    const all=await idbGetAll();
+    try{
+      const tx=db.transaction(STORE,'readwrite'), st=tx.objectStore(STORE);
+      Object.keys(all).forEach(k=>{ if(!validIds.has(k)) st.delete(k); });
+    }catch(e){}
+  }
+  window.clearImageCache=async function(){
+    const db=await openDB(); if(!db){ showToast('Кэш недоступен'); return; }
+    try{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).clear(); }catch(e){}
+    showToast('Картинки будут загружены заново');
+  };
+
+  /* ─── загрузка карт: список без картинок + недостающие картинки ─── */
+  const LIGHT='id,set_id,name,type,rarity,atk,def,spd,emoji';
+
+  async function loadCardsSmart(){
+    const { data, error } = await sb.from('cards').select(LIGHT).order('created_at');
+    if(error) throw error;
+    const rows=data||[];
+    const cache=await idbGetAll();
+    const ids=new Set(rows.map(r=>r.id));
+    const missing=rows.map(r=>r.id).filter(id=>!(id in cache));
+    if(missing.length){
+      for(let i=0;i<missing.length;i+=40){
+        const part=missing.slice(i,i+40);
+        const res=await sb.rpc('card_images',{ p_ids: part });
+        if(res.error) break;
+        (res.data||[]).forEach(r=>{ const v=r.image_url||''; cache[r.id]=v; idbPut(r.id,v); });
+        part.forEach(id=>{ if(!(id in cache)){ cache[id]=''; idbPut(id,''); } });
+      }
+    }
+    idbDropMissing(ids);
+    return rows.map(r=>({
+      id:r.id, setId:r.set_id, name:r.name, type:r.type, rarity:r.rarity,
+      atk:r.atk, def:r.def, spd:r.spd, emoji:r.emoji||'\u2753',
+      image: cache[r.id] ? cache[r.id] : null
+    }));
+  }
+
+  /* ─── подменяем загрузку данных ─── */
+  window.loadFromServer = async function(){
+    const { data:{ user } } = await sb.auth.getUser();
+    if(!user) return false;
+    const [prof, sets, coll, cards] = await Promise.all([
+      sb.from('profiles').select('*').eq('id', user.id).single(),
+      sb.from('card_sets').select('*').order('created_at'),
+      sb.from('collections').select('card_id, qty'),
+      loadCardsSmart()
+    ]);
+    if(prof.error) throw prof.error;
+    state.me      = prof.data;
+    state.isAdmin = prof.data.role === 'admin';
+    state.coins   = prof.data.coins;
+    state.packs   = prof.data.packs;
+    state.wins    = prof.data.wins;
+    state.sets = (sets.data||[]).map(s=>({ id:s.id, name:s.name, active:s.is_active }));
+    if(!state.sets.length) state.sets=[{id:'none', name:'Сезона пока нет', active:true}];
+    state.cardBank = cards;
+    const byId={}; state.cardBank.forEach(c=>byId[c.id]=c);
+    state.collection=[]; let u=1;
+    (coll.data||[]).forEach(r=>{
+      const c=byId[r.card_id]; if(!c) return;
+      for(let i=0;i<r.qty;i++) state.collection.push({ ...c, uid:'u'+(u++) });
+    });
+    return true;
+  };
+
+  /* новая карта сразу попадает в память браузера */
+  const _addCard = window.addCard;
+  window.addCard = async function(){
+    const img = (typeof builderImage!=='undefined') ? builderImage : null;
+    const before = state.cardBank.length;
+    await _addCard();
+    if(state.cardBank.length > before){
+      const fresh = state.cardBank[state.cardBank.length-1];
+      if(fresh && fresh.id) idbPut(fresh.id, img || '');
+    }
+  };
+
+  /* ─── меньше вес фото и картинок ─── */
+  const _compress = window.compressImage;
+  window.compressImage = function(file, max, q){
+    return _compress(file, max || 380, (q == null ? 0.68 : q));
+  };
+
+  /* ─── панель «Место и трафик» у админа ─── */
+  window.loadStorageStats = async function(){
+    const box=document.getElementById('stor-body'); if(!box) return;
+    const { data, error } = await sb.rpc('storage_stats');
+    if(error){ box.textContent='Не удалось загрузить'; return; }
+    box.innerHTML=`<div style="overflow-x:auto"><table class="log-table">
+      <tr><th>Что</th><th>Записей</th><th>Занимает</th></tr>
+      ${(data||[]).map(r=>`<tr><td>${r['что']}</td><td>${r['строк']||'—'}</td><td>${r['размер']}</td></tr>`).join('')}
+    </table></div>
+    <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-top:10px">
+      Бесплатный тариф Supabase: 500 МБ базы и 5 ГБ трафика в месяц.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-ghost" onclick="doCleanupPhotos()">\u{1F9F9} Убрать старые фото заявок</button>
+      <button class="btn btn-ghost" onclick="clearImageCache()">\u{1F504} Сбросить кэш картинок</button>
+    </div>`;
+  };
+  window.doCleanupPhotos = async function(){
+    const { data, error } = await sb.rpc('cleanup_photos');
+    if(error){ showToast(error.message); return; }
+    showToast('Очищено заявок: '+data);
+    loadStorageStats();
+  };
+
+  const _renderAdmin4 = window.renderAdmin;
+  window.renderAdmin = function(){
+    _renderAdmin4();
+    if(!document.getElementById('stor-panel')){
+      const scr=document.getElementById('screen-admin');
+      if(scr) scr.insertAdjacentHTML('beforeend',
+        `<div class="panel" id="stor-panel"><h3>\u{1F4BE} Место и трафик</h3>
+          <div id="stor-body" style="font-size:13px;font-weight:700;color:var(--c-ink-soft)">Загружаем...</div></div>`);
+    }
+    loadStorageStats();
+  };
+})();
+}
+</script>
+
 </body>
 </html>
