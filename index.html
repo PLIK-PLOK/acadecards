@@ -3126,5 +3126,149 @@ if(typeof SB_READY!=='undefined' && SB_READY){
 }
 </script>
 
+<style>
+  .pack-lot{ position:relative; text-align:center; padding:12px 10px; border-radius:16px;
+    background:linear-gradient(180deg,#FFFFFF,var(--c-cream)); border:3px solid var(--c-pine);
+    box-shadow:0 5px 0 rgba(5,35,20,.5), inset 0 2px 0 #fff; }
+  .pack-lot.archive{ border-color:var(--c-gold); box-shadow:0 5px 0 var(--c-gold-d), 0 0 22px rgba(255,206,74,.35), inset 0 2px 0 #fff; }
+  .pack-lot .mini-booster{ width:74px; height:104px; margin:0 auto 8px; border-radius:8px; position:relative; overflow:hidden;
+    border:2.5px solid var(--c-abyss); display:flex; align-items:center; justify-content:center; font-size:26px;
+    background:repeating-linear-gradient(112deg, rgba(255,255,255,.16) 0 5px, transparent 5px 12px),
+               linear-gradient(150deg,#D8F0AE,#8FCB6A 35%,#3D9257 65%,#C9E7A2); }
+  .pack-lot.archive .mini-booster{ background:repeating-linear-gradient(112deg, rgba(255,255,255,.2) 0 5px, transparent 5px 12px),
+               linear-gradient(150deg,#FFE9A8,#FFCE4A 40%,#DFA01B 75%,#FFE9A8); }
+  .pack-lot .mini-lid{ position:absolute; top:0; left:-2px; right:-2px; height:16px;
+    background:linear-gradient(180deg,#2E8250,#14532F); border-bottom:2px dashed rgba(255,255,255,.7); }
+  .pack-lot.archive .mini-lid{ background:linear-gradient(180deg,#B9760A,#7A4D06); }
+  .pack-lot-name{ font-family:'Russo One'; font-size:12px; color:var(--c-ink); line-height:1.1; }
+  .pack-lot-tag{ font-size:9px; font-weight:900; padding:2px 8px; border-radius:99px; display:inline-block; margin-top:5px; }
+  .plt-archive{ background:linear-gradient(180deg,#FFDC6B,#E0A21C); color:#5A3A00; border:1.5px solid #B9760A; }
+  .plt-active{ background:#E4EBDD; color:#4E6E58; border:1.5px solid rgba(34,110,67,.3); }
+  .sealed-note{ font-size:10px; font-weight:800; color:var(--c-ink-soft); margin-top:4px; }
+</style>
+<script>
+if(typeof SB_READY!=='undefined' && SB_READY){
+(function(){
+  window.listPack = async function(setId){
+    const inp=document.getElementById('ppr-'+setId);
+    const price=parseInt(inp && inp.value,10);
+    if(!price || price<1 || price>9999){ showToast('Цена от 1 до 9999 монет'); return; }
+    const { error } = await sb.rpc('list_pack', { p_set:setId, p_price:price });
+    if(error){ showToast(error.message); return; }
+    sfx('rare'); showToast('Запечатанный пак выставлен! \u{1F4E4}');
+    await Promise.all([loadMyPacks(), loadMarket()]);
+    renderShop();
+  };
+
+  function packLotHTML(l){
+    const arch=!l.set_active;
+    return `<div class="pack-lot ${arch?'archive':''}">
+      <div class="lot-seller">\u{1F464} ${l.seller_login}</div>
+      <div class="mini-booster"><div class="mini-lid"></div>\u2726</div>
+      <div class="pack-lot-name">${l.set_name||'Пак'}</div>
+      <div class="pack-lot-tag ${arch?'plt-archive':'plt-active'}">${arch?'архив \u2022 не выпускается':'текущий сезон'}</div>
+      <div class="sealed-note">запечатан \u2022 5 карт</div>
+      <div class="lot-row">
+        <div class="lot-price">\u{1F4B0} ${l.price}</div>
+        ${l.is_mine
+          ? `<button class="btn btn-red btn-mini" style="padding:8px 12px" onclick="cancelLot('${l.listing_id}')">Снять</button>`
+          : `<button class="offer-buy" style="width:auto;margin-top:0;padding:8px 14px" ${state.coins>=l.price?'':'disabled'} onclick="buyLot('${l.listing_id}')">Купить</button>`}
+      </div></div>`;
+  }
+
+  /* ─── добавляем паки в разметку рынка ─── */
+  const _marketHTML = window.marketHTML;
+  window.marketHTML = function(){
+    const base=_marketHTML();
+    const lots=(typeof marketLots!=='undefined'?marketLots:[]).filter(l=>l.kind==='pack');
+    const others=lots.filter(l=>!l.is_mine), mine=lots.filter(l=>l.is_mine);
+    const myPacksList=(typeof window.__myPacks==='function')?window.__myPacks():[];
+
+    const sellHTML=myPacksList.map(p=>`<div class="pack-lot ${p.is_active?'':'archive'}">
+        <div class="mini-booster"><div class="mini-lid"></div>\u2726</div>
+        <div class="pack-lot-name">${p.name}</div>
+        <div class="pack-lot-tag ${p.is_active?'plt-active':'plt-archive'}">${p.is_active?'текущий':'архив'}</div>
+        <div class="sealed-note">у тебя: ${p.qty}</div>
+        <input class="price-input" id="ppr-${p.set_id}" type="number" min="1" max="9999"
+               value="${p.is_active?150:400}" placeholder="цена">
+        <button class="sell-btn" onclick="listPack('${p.set_id}')">Выставить \u{1F4E4}</button>
+      </div>`).join('');
+
+    const packsPanel=`
+      <div class="panel"><h3>\u{1F4E6} Запечатанные паки</h3>
+        <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-bottom:12px">
+          Никто не знает, что внутри. Паки закрытых сезонов больше не выпускаются \u2014 они самые ценные.</div>
+        ${others.length?`<div class="shop-offers">${others.map(packLotHTML).join('')}</div>`
+          :'<div class="empty-state" style="padding:1.5rem;color:var(--c-ink-soft)">Паков на продаже нет</div>'}
+      </div>
+      ${myPacksList.length?`<div class="panel"><h3>\u{1F4E4} Продать свой пак</h3>
+        <div style="font-size:12px;font-weight:700;color:var(--c-ink-soft);margin-bottom:12px">
+          Пока лот висит, пак нельзя открыть \u2014 можно вернуть кнопкой «Снять».</div>
+        <div class="shop-offers">${sellHTML}</div></div>`:''}
+      ${mine.length?`<div class="panel"><h3>\u{1F4CB} Мои паки на продаже</h3>
+        <div class="shop-offers">${mine.map(packLotHTML).join('')}</div></div>`:''}`;
+
+    return base + packsPanel;
+  };
+
+  /* даём разметке рынка доступ к списку своих паков */
+  const _loadMyPacks = window.loadMyPacks;
+  let cachedPacks=[];
+  window.loadMyPacks = async function(){
+    const { data, error } = await sb.rpc('my_packs');
+    if(!error) cachedPacks = data || [];
+    return _loadMyPacks();
+  };
+  window.__myPacks = function(){ return cachedPacks; };
+
+  /* при переходе на рынок подтягиваем и паки */
+  const _setShopTab = window.setShopTab;
+  window.setShopTab = function(t){
+    _setShopTab(t);
+    if(t==='market') loadMyPacks().then(()=>{ if(shopTab==='market') renderShop(); });
+  };
+
+  /* журнал сделок: показываем вид лота */
+  const _loadTradeLog = window.loadTradeLog;
+  window.loadTradeLog = async function(){
+    const el=document.getElementById('trade-log-body'); if(!el) return;
+    const { data, error } = await sb.rpc('trade_log');
+    if(error){ el.textContent='Не удалось загрузить'; return; }
+    if(!data || !data.length){ el.textContent='Сделок пока не было.'; return; }
+    el.innerHTML=`<div style="overflow-x:auto"><table class="log-table">
+      <tr><th>Что</th><th>Цена</th><th>Продал</th><th>Купил</th><th>Когда</th></tr>
+      ${data.map(t=>`<tr>
+        <td>${t.kind==='pack'?'\u{1F4E6} ':''}${t.card_name}${t.kind!=='pack'?' <span style="color:var(--c-ink-soft)">'+rLabel(t.rarity)+'</span>':''}</td>
+        <td>\u{1F4B0} ${t.price}</td><td>${t.seller||'—'}</td><td>${t.buyer||'—'}</td>
+        <td style="color:var(--c-ink-soft)">${new Date(t.closed_at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+      </tr>`).join('')}</table></div>`;
+  };
+})();
+}
+</script>
+
+<script>
+if(typeof SB_READY!=='undefined' && SB_READY){
+(function(){
+  /* Паки больше не продаются за монеты — убираем панель у скупщика */
+  const _renderShop = window.renderShop;
+  window.renderShop = function(){
+    _renderShop();
+    const box=document.getElementById('shop-content'); if(!box) return;
+    box.querySelectorAll('.panel h3').forEach(h=>{
+      if(/Купить пак/.test(h.textContent)) h.parentElement.remove();
+    });
+    if(shopTab==='trader'){
+      const note=box.querySelector('.panel:last-child div[style*="margin-top:10px"]');
+      if(note && !/оценк/.test(note.textContent)){
+        note.insertAdjacentHTML('beforeend',
+          ' Паки за монеты не продаются \u2014 их выдаёт админ за оценки, а перекупить можно на рынке.');
+      }
+    }
+  };
+})();
+}
+</script>
+
 </body>
 </html>
