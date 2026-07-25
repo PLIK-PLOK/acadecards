@@ -602,9 +602,12 @@
     }
     .nav::after{ display:none; }
     .nav-logo{ display:none; }
-    .nav-tab{ flex-direction:column; gap:2px; padding:8px 2px; font-size:9px; border-radius:11px; min-height:46px; }
-    .nav-tab .ic{ font-size:18px; }
-    .main{ padding:1rem .7rem calc(96px + env(safe-area-inset-bottom,0px)); }
+    .nav-tab{ flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      padding:9px 2px; font-size:9.5px; line-height:1; border-radius:13px; min-height:58px; }
+    .nav-tab .ic{ font-size:24px; line-height:1; height:26px; width:100%;
+      display:flex; align-items:center; justify-content:center; }
+    .nav-tab .lb{ display:block; width:100%; text-align:center; line-height:1; }
+    .main{ padding:1rem .7rem calc(112px + env(safe-area-inset-bottom,0px)); }
     .page-title{ font-size:21px; } .page-sub{ font-size:12px; }
     .panel{ padding:1rem .85rem 1.1rem; border-radius:17px; }
     .cards-grid{ grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px; }
@@ -625,11 +628,12 @@
     .battle-select-info{ flex-wrap:wrap; gap:9px; }
     .stats-grid{ grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:10px; }
     .stat-num{ font-size:22px; }
-    .toast{ bottom:calc(88px + env(safe-area-inset-bottom,0px)); }
+    .toast{ bottom:calc(100px + env(safe-area-inset-bottom,0px)); }
     body{ background-attachment:scroll; }
   }
   @media (max-width:380px){
-    .nav-tab{ font-size:8px; padding:7px 1px; } .nav-tab .ic{ font-size:16px; }
+    .nav-tab{ font-size:8.5px; padding:8px 1px; min-height:54px; }
+    .nav-tab .ic{ font-size:21px; height:23px; }
     .cards-grid{ grid-template-columns:repeat(2,1fr); }
     .action-bar.six{ grid-template-columns:repeat(2,1fr); }
   }
@@ -741,8 +745,16 @@
         <div class="add-row"><input class="input-field" id="new-student-name" placeholder="Имя ученика..." style="flex:1"><button class="btn btn-ghost" onclick="addStudent()">Добавить</button></div>
       </div>
 
-      <div class="panel"><h3>&#128190; Данные</h3>
-        <div style="font-size:13px;color:var(--c-ink-soft);font-weight:500;margin-bottom:12px">Всё сохраняется в этом браузере. Можно сбросить всё к начальному состоянию.</div>
+      <div class="panel"><h3>&#128190; Резервная копия</h3>
+        <div style="font-size:13px;color:var(--c-ink-soft);font-weight:500;margin-bottom:12px">
+          Скачивает все сезоны, карты, балансы и <b>коллекции всех учеников</b> одним JSON-файлом.
+          На бесплатном тарифе других бэкапов нет — делай копию хотя бы раз в неделю и после каждого важного изменения.</div>
+        <button class="btn btn-primary" onclick="exportBackup()">&#11015;&#65039; Скачать резервную копию</button>
+        <div id="backup-status" style="font-size:12px;font-weight:800;margin-top:10px"></div>
+      </div>
+
+      <div class="panel"><h3>&#9888;&#65039; Опасная зона</h3>
+        <div style="font-size:13px;color:var(--c-ink-soft);font-weight:500;margin-bottom:12px">Сброс затрагивает только данные в этом браузере. Перед сбросом сделай резервную копию выше.</div>
         <button class="btn btn-red" style="box-shadow:0 3px 0 #E84545" onclick="resetAll()">&#9888;&#65039; Сбросить всё</button>
       </div>
     </div>
@@ -2475,10 +2487,21 @@ if(typeof SB_READY!=='undefined' && SB_READY){
   const players={}, sfxCache={};
   try{ musicOn = localStorage.getItem('acade-music') !== 'off'; }catch(e){}
 
+  /* ─── умеет ли устройство менять громкость? ───
+     На iPhone/iPad Safari свойство volume только для чтения: присвоение
+     игнорируется, а чтение всегда возвращает 1. Поэтому плавное затухание,
+     которое смотрело на audio.volume, никогда не доходило до нуля — старый
+     трек не ставился на паузу и звучал поверх нового. */
+  let VOL_OK = true;
+  try{ const _t = new Audio(); _t.volume = 0.42; VOL_OK = Math.abs(_t.volume - 0.42) < 0.01; }
+  catch(e){ VOL_OK = false; }
+
   /* ─── проигрыватели ─── */
   function makeAudio(src, loop){
     const a = new Audio(src);
-    a.loop = !!loop; a.preload = 'auto'; a.volume = 0;
+    a.loop = !!loop; a.preload = 'auto';
+    a._vol = 0;                       // сами храним задуманную громкость
+    try{ a.volume = 0; }catch(e){}
     a.addEventListener('error', ()=>{ a._broken = true; }, { once:true });
     return a;
   }
@@ -2486,17 +2509,33 @@ if(typeof SB_READY!=='undefined' && SB_READY){
     if(!audio) return;
     // у каждого трека свой таймер: иначе затухание одного обрывало появление другого
     if(audio._fade){ clearInterval(audio._fade); audio._fade = null; }
-    const step = 40, delta = (target - audio.volume) / Math.max(1, ms/step);
-    if(delta === 0){ if(target===0){ try{ audio.pause(); }catch(e){} } return; }
+    if(typeof audio._vol !== 'number') audio._vol = 0;
+    const step = 40, ticks = Math.max(1, Math.round(ms/step));
+    const delta = (target - audio._vol) / ticks;
+    // Идём по СВОЕМУ счётчику _vol, а не по audio.volume — тогда цикл всегда
+    // доходит до target и ставит паузу даже там, где громкость не меняется.
+    if(delta === 0){
+      audio._vol = target;
+      try{ audio.volume = target; }catch(e){}
+      if(target === 0){ try{ audio.pause(); }catch(e){} }
+      return;
+    }
     audio._fade = setInterval(()=>{
-      let v = audio.volume + delta;
+      let v = audio._vol + delta;
       if((delta>0 && v>=target) || (delta<0 && v<=target)){
         v = target;
         clearInterval(audio._fade); audio._fade = null;
-        if(target===0){ try{ audio.pause(); }catch(e){} }
       }
+      audio._vol = v;
       try{ audio.volume = Math.max(0, Math.min(1, v)); }catch(e){}
+      if(v === target && target === 0){ try{ audio.pause(); }catch(e){} }
     }, step);
+  }
+  function hardStop(audio){
+    if(!audio) return;
+    if(audio._fade){ clearInterval(audio._fade); audio._fade = null; }
+    audio._vol = 0;
+    try{ audio.pause(); }catch(e){}
   }
   function playTrack(key){
     if(!musicOn || !started) { curTrack = key; return; }
@@ -2508,11 +2547,16 @@ if(typeof SB_READY!=='undefined' && SB_READY){
     const next = players[key];
     if(next._broken){ synthMusic(true); curTrack = key; return; }
     curTrack = key; curAudio = next;
-    next.currentTime = 0; next.volume = 0;
+    next.currentTime = 0; next._vol = 0; try{ next.volume = 0; }catch(e){}
     const p = next.play();
     if(p && p.catch) p.catch(()=>{ synthMusic(true); });
     fadeTo(next, MUSIC_VOL, 900);
-    if(prev && prev !== next) fadeTo(prev, 0, 700);
+    // старый трек: если громкость управляется — плавно гасим; если нет
+    // (iOS) — рубим сразу, чтобы не было наложения на время «затухания».
+    if(prev && prev !== next){
+      if(VOL_OK) fadeTo(prev, 0, 700);
+      else hardStop(prev);
+    }
     synthMusic(false);
   }
   function stopAll(){
@@ -3267,6 +3311,79 @@ if(typeof SB_READY!=='undefined' && SB_READY){
     }
   };
 })();
+}
+</script>
+
+<script>
+/* ═══ Резервная копия (только для админа) ═══
+   Сначала пробуем серверную функцию admin_export() — она возвращает ВСЁ,
+   включая коллекции каждого ученика (обходит RLS, но защищена проверкой роли).
+   Если функции ещё нет в базе — скачиваем частичную копию из того, что видно
+   клиенту, и честно предупреждаем об этом. Кнопка не ломается ни в одном случае. */
+async function exportBackup(){
+  const statusEl = document.getElementById('backup-status');
+  const setStatus = (t, c)=>{ if(statusEl){ statusEl.textContent = t; statusEl.style.color = c || 'var(--c-ink-soft)'; } };
+
+  if(typeof sb === 'undefined' || !sb){
+    setStatus('Нет связи с сервером — копию можно сделать только онлайн.', '#C2352F');
+    return;
+  }
+  setStatus('Собираю данные…');
+
+  try{
+    let payload = null, mode = '';
+
+    // 1) Пытаемся получить полный серверный экспорт.
+    try{
+      const { data, error } = await sb.rpc('admin_export');
+      if(!error && data){ payload = data; mode = 'full'; }
+    }catch(e){ /* функции может ещё не быть — идём в запасной вариант */ }
+
+    // 2) Запасной вариант: то, что доступно клиенту напрямую.
+    if(!payload){
+      const [sets, cards, students, mine] = await Promise.all([
+        sb.from('card_sets').select('*').order('created_at'),
+        sb.from('cards').select('*').order('created_at'),
+        sb.rpc('list_students'),
+        sb.from('collections').select('card_id, qty')
+      ]);
+      payload = {
+        card_sets: (sets && sets.data) || [],
+        cards: (cards && cards.data) || [],
+        students: (students && students.data) || [],
+        my_collection: (mine && mine.data) || [],
+        _note: 'ЧАСТИЧНАЯ копия: персональные коллекции учеников не включены. ' +
+               'Примени миграцию acadecards_backup.sql, чтобы копия стала полной.'
+      };
+      mode = 'partial';
+    }
+
+    const meta = {
+      app: 'AcadeCards',
+      kind: (mode === 'full') ? 'full-backup' : 'partial-backup',
+      exported_at: new Date().toISOString(),
+      by: (typeof state !== 'undefined' && state.me && (state.me.login || state.me.id)) || null,
+      version: 1
+    };
+
+    const json = JSON.stringify({ meta, data: payload }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const a = document.createElement('a');
+    a.href = url; a.download = 'acadecards-backup-' + stamp + '.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+
+    if(mode === 'full'){
+      setStatus('Готово: полная копия скачана \u2705', '#1F6B33');
+      try{ sfx('win'); }catch(e){}
+    } else {
+      setStatus('Скачана ЧАСТИЧНАЯ копия (без коллекций учеников). Примени acadecards_backup.sql для полной.', '#8A6100');
+    }
+  }catch(err){
+    setStatus('Не удалось сделать копию: ' + ((err && err.message) ? err.message : err), '#C2352F');
+  }
 }
 </script>
 
